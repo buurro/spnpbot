@@ -1,0 +1,9 @@
+{
+  "python.analysis.typeCheckingMode": "strict",
+  "python.languageServer": "Pylance",
+  "mypy-type-checker.ignorePatterns": [
+    "**"
+  ],
+  "python-envs.defaultEnvManager": "ms-python.python:venv",
+  "python-envs.pythonProjects": [],
+}

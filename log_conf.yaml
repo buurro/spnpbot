@@ -1,0 +1,57 @@
+version: 1
+disable_existing_loggers: false
+
+formatters:
+  default:
+    format: '%(name)s - %(message)s'
+  access:
+    format: '%(name)s - %(message)s'
+
+handlers:
+  default:
+    class: rich.logging.RichHandler
+    formatter: default
+    rich_tracebacks: false
+    show_time: false
+    show_level: true
+    show_path: false
+    markup: false
+
+  access:
+    class: rich.logging.RichHandler
+    formatter: access
+    rich_tracebacks: false
+    show_time: false
+    show_level: true
+    show_path: false
+    markup: false
+
+loggers:
+  uvicorn.error:
+    handlers:
+      - default
+    propagate: no
+
+  uvicorn.access:
+    handlers:
+      - access
+    propagate: no
+
+  uvicorn:
+    handlers:
+      - default
+    propagate: no
+
+  fastapi:
+    handlers:
+      - default
+    propagate: no
+
+  app:
+    handlers:
+      - default
+    propagate: no
+
+root:
+  handlers:
+    - default

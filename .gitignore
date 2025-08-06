@@ -1,0 +1,20 @@
+.env
+!.env.test
+.claude/settings.local.json
+database.db
+result
+
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Coverage reports
+htmlcov/
+.coverage

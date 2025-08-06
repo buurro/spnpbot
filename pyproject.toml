@@ -1,0 +1,80 @@
+[project]
+name = "spnpbot"
+version = "0.1.1"
+description = "A Telegram bot that shares your currently playing Spotify track via inline queries"
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "aiogram>=3.21.0",
+    "aiosqlite>=0.20.0",
+    "alembic>=1.16.5",
+    "cachetools>=6.2.1",
+    "cryptography>=45.0.7",
+    "fastapi[standard]>=0.116.1",
+    "httpx>=0.28.1",
+    "psycopg[binary,pool]>=3.2.12",
+    "pydantic>=2.11.7",
+    "pydantic-settings>=2.10.1",
+    "pyyaml>=6.0",
+    "respx>=0.22.0",
+    "rich>=13.9.4",
+    "sentry-sdk[fastapi]>=2.42.1",
+    "spotipy>=2.25.1",
+    "sqlalchemy[asyncio]>=2.0.0",
+    "sqlmodel>=0.0.24",
+]
+
+[dependency-groups]
+dev = [
+    "fastapi-cli>=0.0.8",
+    "pytest>=8.4.1",
+    "pytest-asyncio>=1.1.0",
+    "pytest-cov>=7.0.0",
+    "pytest-mock>=3.14.1",
+    "ruff>=0.12.7",
+    "ty>=0.0.1a24",
+]
+
+[tool.ruff]
+exclude = [
+    "migrations",
+    ".venv",
+    "__pycache__",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/conftest.py" = ["E402"]
+
+[tool.ty.src]
+exclude = ["migrations"]
+
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = [
+    "--cov=app",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-fail-under=80",
+]
+filterwarnings = [
+    "ignore::ResourceWarning",
+]
+
+[tool.coverage.run]
+source = ["app"]
+omit = [
+    "*/tests/*",
+    "*/__init__.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+]
