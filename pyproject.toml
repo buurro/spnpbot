@@ -42,8 +42,13 @@ exclude = [
     "__pycache__",
 ]
 
+[tool.ruff.lint]
+select = ["ANN"]  # Enable flake8-annotations rules
+
 [tool.ruff.lint.per-file-ignores]
 "tests/conftest.py" = ["E402"]
+# You may want to relax annotation rules in tests
+"tests/**/*.py" = ["ANN"]
 
 [tool.ty.src]
 exclude = ["migrations"]

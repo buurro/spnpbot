@@ -23,7 +23,7 @@ class SpotifyApiError(Exception):
         status_code: HTTP status code from the API response (if available)
     """
 
-    def __init__(self, message: str, status_code: int | None = None):
+    def __init__(self, message: str, status_code: int | None = None) -> None:
         self.message = message
         self.status_code = status_code
         super().__init__(message)

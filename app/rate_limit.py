@@ -114,7 +114,7 @@ class RateLimitMiddleware(BaseMiddleware):
         handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
         event: TelegramObject,
         data: dict[str, Any],
-    ) -> Any:
+    ) -> Any:  # noqa: ANN401 - Middleware must match aiogram's BaseMiddleware signature
         """Process event with rate limiting."""
         # Extract user and determine request type
         match event:
