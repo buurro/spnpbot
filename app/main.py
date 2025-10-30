@@ -23,6 +23,7 @@ if config.SENTRY_DSN:
         environment=config.ENVIRONMENT,
         traces_sample_rate=1.0,
         profiles_sample_rate=1.0,
+        enable_logs=True,
     )
     logger.info("Sentry initialized with environment: %s", config.ENVIRONMENT)
 else:
