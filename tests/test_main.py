@@ -49,7 +49,7 @@ def test_telegram_webhook(
 ) -> None:
     """Test telegram webhook endpoint with valid secret."""
     # Mock the dispatcher
-    mock_feed = mocker.patch("app.main.dp.feed_update", new_callable=AsyncMock)
+    mock_feed = mocker.patch("app.routes.dp.feed_update", new_callable=AsyncMock)
 
     # Call the endpoint with valid secret token
     response = client.post(
@@ -68,7 +68,7 @@ def test_telegram_webhook_invalid_secret(
     client: TestClient, telegram_update_data: dict, mocker: MockerFixture
 ) -> None:
     # Mock the dispatcher
-    mock_feed = mocker.patch("app.main.dp.feed_update", new_callable=AsyncMock)
+    mock_feed = mocker.patch("app.routes.dp.feed_update", new_callable=AsyncMock)
 
     # Call the endpoint with invalid secret token
     response = client.post(
@@ -88,7 +88,7 @@ def test_telegram_webhook_missing_secret(
 ) -> None:
     """Test telegram webhook endpoint with missing secret token header."""
     # Mock the dispatcher
-    mock_feed = mocker.patch("app.main.dp.feed_update", new_callable=AsyncMock)
+    mock_feed = mocker.patch("app.routes.dp.feed_update", new_callable=AsyncMock)
 
     # Call the endpoint without secret token header
     response = client.post(
@@ -109,11 +109,11 @@ def test_spotify_callback_success(client: TestClient, mocker: MockerFixture) -> 
     # Mock bot.get_me()
     mock_bot_info = mocker.MagicMock()
     mock_bot_info.username = "testbot"
-    mocker.patch("app.main.bot.get_me", return_value=mock_bot_info)
+    mocker.patch("app.routes.bot.get_me", return_value=mock_bot_info)
 
     # Mock bot.send_message()
     mock_send_message = mocker.patch(
-        "app.main.bot.send_message", new_callable=AsyncMock
+        "app.routes.bot.send_message", new_callable=AsyncMock
     )
 
     # Mock get_token
@@ -124,7 +124,7 @@ def test_spotify_callback_success(client: TestClient, mocker: MockerFixture) -> 
         scope="user-read-currently-playing",
         expires_in=3600,
     )
-    mocker.patch("app.main.get_token", return_value=mock_token)
+    mocker.patch("app.routes.get_token", return_value=mock_token)
 
     # Mock database session (async context manager)
     mock_session = mocker.MagicMock()
@@ -132,7 +132,7 @@ def test_spotify_callback_success(client: TestClient, mocker: MockerFixture) -> 
     mock_session.__aexit__ = AsyncMock(return_value=None)
     mock_session.merge = AsyncMock()
     mock_session.commit = AsyncMock()
-    mocker.patch("app.main.get_session", return_value=mock_session)
+    mocker.patch("app.routes.get_session", return_value=mock_session)
 
     # Call the endpoint
     response = client.get(
@@ -164,11 +164,11 @@ def test_spotify_callback_duplicate_login(
     # Mock bot.get_me()
     mock_bot_info = mocker.MagicMock()
     mock_bot_info.username = "testbot"
-    mocker.patch("app.main.bot.get_me", return_value=mock_bot_info)
+    mocker.patch("app.routes.bot.get_me", return_value=mock_bot_info)
 
     # Mock bot.send_message()
     mock_send_message = mocker.patch(
-        "app.main.bot.send_message", new_callable=AsyncMock
+        "app.routes.bot.send_message", new_callable=AsyncMock
     )
 
     # Mock get_token
@@ -179,7 +179,7 @@ def test_spotify_callback_duplicate_login(
         scope="user-read-currently-playing",
         expires_in=3600,
     )
-    mocker.patch("app.main.get_token", return_value=mock_token)
+    mocker.patch("app.routes.get_token", return_value=mock_token)
 
     # Mock database session (async context manager)
     mock_session = mocker.MagicMock()
@@ -187,7 +187,7 @@ def test_spotify_callback_duplicate_login(
     mock_session.__aexit__ = AsyncMock(return_value=None)
     mock_session.merge = AsyncMock()
     mock_session.commit = AsyncMock()
-    mocker.patch("app.main.get_session", return_value=mock_session)
+    mocker.patch("app.routes.get_session", return_value=mock_session)
 
     # Call the endpoint twice to simulate duplicate login
     response1 = client.get(
@@ -222,7 +222,7 @@ def test_spotify_callback_error_parameter(
     # Mock bot.get_me()
     mock_bot_info = mocker.MagicMock()
     mock_bot_info.username = "testbot"
-    mocker.patch("app.main.bot.get_me", return_value=mock_bot_info)
+    mocker.patch("app.routes.bot.get_me", return_value=mock_bot_info)
 
     # Call the endpoint with error
     response = client.get(
@@ -244,7 +244,7 @@ def test_spotify_callback_missing_code(
     # Mock bot.get_me()
     mock_bot_info = mocker.MagicMock()
     mock_bot_info.username = "testbot"
-    mocker.patch("app.main.bot.get_me", return_value=mock_bot_info)
+    mocker.patch("app.routes.bot.get_me", return_value=mock_bot_info)
 
     # Call the endpoint without code
     response = client.get(
@@ -264,10 +264,10 @@ def test_spotify_callback_auth_error(client: TestClient, mocker: MockerFixture) 
     # Mock bot.get_me()
     mock_bot_info = mocker.MagicMock()
     mock_bot_info.username = "testbot"
-    mocker.patch("app.main.bot.get_me", return_value=mock_bot_info)
+    mocker.patch("app.routes.bot.get_me", return_value=mock_bot_info)
 
     # Mock get_token to raise SpotifyAuthError
-    mocker.patch("app.main.get_token", side_effect=SpotifyAuthError("Invalid code"))
+    mocker.patch("app.routes.get_token", side_effect=SpotifyAuthError("Invalid code"))
 
     # Call the endpoint
     response = client.get(
@@ -296,7 +296,7 @@ def test_spotify_callback_expired_state(
     # Mock bot.get_me()
     mock_bot_info = mocker.MagicMock()
     mock_bot_info.username = "testbot"
-    mocker.patch("app.main.bot.get_me", return_value=mock_bot_info)
+    mocker.patch("app.routes.bot.get_me", return_value=mock_bot_info)
 
     # Call the endpoint with expired state
     response = client.get(
@@ -317,7 +317,7 @@ def test_spotify_callback_invalid_state(
     # Mock bot.get_me()
     mock_bot_info = mocker.MagicMock()
     mock_bot_info.username = "testbot"
-    mocker.patch("app.main.bot.get_me", return_value=mock_bot_info)
+    mocker.patch("app.routes.bot.get_me", return_value=mock_bot_info)
 
     # Call the endpoint with invalid state
     response = client.get(
@@ -386,11 +386,11 @@ def test_spotify_callback_send_message_error(
     # Mock bot.get_me()
     mock_bot_info = mocker.MagicMock()
     mock_bot_info.username = "testbot"
-    mocker.patch("app.main.bot.get_me", return_value=mock_bot_info)
+    mocker.patch("app.routes.bot.get_me", return_value=mock_bot_info)
 
     # Mock bot.send_message() to raise exception
     mock_send_message = mocker.patch(
-        "app.main.bot.send_message",
+        "app.routes.bot.send_message",
         new_callable=AsyncMock,
         side_effect=Exception("Bot blocked by user"),
     )
@@ -403,7 +403,7 @@ def test_spotify_callback_send_message_error(
         scope="user-read-currently-playing",
         expires_in=3600,
     )
-    mocker.patch("app.main.get_token", return_value=mock_token)
+    mocker.patch("app.routes.get_token", return_value=mock_token)
 
     # Mock database session
     mock_session = mocker.MagicMock()
@@ -411,7 +411,7 @@ def test_spotify_callback_send_message_error(
     mock_session.__aexit__ = AsyncMock(return_value=None)
     mock_session.merge = AsyncMock()
     mock_session.commit = AsyncMock()
-    mocker.patch("app.main.get_session", return_value=mock_session)
+    mocker.patch("app.routes.get_session", return_value=mock_session)
 
     # Call the endpoint - should succeed despite send_message error
     response = client.get(
