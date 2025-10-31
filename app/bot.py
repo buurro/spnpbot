@@ -9,6 +9,7 @@ from aiogram.types import (
 )
 from aiogram.types import (
     InlineKeyboardMarkup,
+    InlineQueryResultsButton,
     InlineQueryResultUnion,
 )
 from cachetools import TTLCache
@@ -115,8 +116,7 @@ async def inline_query(query: types.InlineQuery) -> None:
     user = query.from_user
 
     results: list[InlineQueryResultUnion] = []
-    switch_pm_text: str | None = None
-    switch_pm_parameter: str | None = None
+    button: InlineQueryResultsButton | None = None
     track = None
     context = None
 
@@ -136,22 +136,23 @@ async def inline_query(query: types.InlineQuery) -> None:
             logger.warning(
                 "user %d needs to login/re-authenticate with Spotify", user.id
             )
-            switch_pm_text = "Login with Spotify"
-            switch_pm_parameter = "login"
+            button = InlineQueryResultsButton(
+                text="Login with Spotify",
+                start_parameter="login",
+            )
 
     if track:
         results.append(build_track_result(track))
         if context:
             results.append(build_context_result(context))
-    elif not switch_pm_text:
+    elif not button:
         logger.warning("no track found for user %d", user.id)
 
     try:
         await query.answer(
             results=results,
             cache_time=0,
-            switch_pm_text=switch_pm_text,
-            switch_pm_parameter=switch_pm_parameter,
+            button=button,
         )
     except TelegramBadRequest as e:
         if "query is too old" in str(e):

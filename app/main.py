@@ -42,11 +42,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     )
     await bot.set_my_commands(
         [
-            BotCommand(command="/start", description="Start the bot"),
-            BotCommand(command="/help", description="How to use inline mode and login"),
-            BotCommand(
-                command="/logout", description="Disconnect your Spotify account"
-            ),
+            BotCommand(command="start", description="Start the bot"),
+            BotCommand(command="help", description="How to use inline mode and login"),
+            BotCommand(command="logout", description="Disconnect your Spotify account"),
         ]
     )
     logger.info("Webhook set")

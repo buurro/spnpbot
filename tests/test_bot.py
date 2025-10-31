@@ -46,8 +46,9 @@ async def test_inline_query_not_logged_in(
     mock_inline_query.answer.assert_awaited_once()
     call_kwargs = mock_inline_query.answer.call_args.kwargs
     assert call_kwargs["results"] == []
-    assert call_kwargs["switch_pm_text"] == "Login with Spotify"
-    assert call_kwargs["switch_pm_parameter"] == "login"
+    assert call_kwargs["button"] is not None
+    assert call_kwargs["button"].text == "Login with Spotify"
+    assert call_kwargs["button"].start_parameter == "login"
     assert call_kwargs["cache_time"] == 0
 
 

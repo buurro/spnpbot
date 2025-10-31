@@ -224,7 +224,8 @@ class TestRateLimitMiddleware:
         # User should receive rate limit response
         inline_query.answer.assert_called_once()
         call_kwargs = inline_query.answer.call_args[1]
-        assert "Too many requests" in call_kwargs.get("switch_pm_text", "")
+        assert call_kwargs.get("button") is not None
+        assert "Too many requests" in call_kwargs["button"].text
 
     @pytest.mark.asyncio
     async def test_allow_callback_query_within_limit(self, middleware, mock_handler):

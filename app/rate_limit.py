@@ -9,7 +9,13 @@ from collections import defaultdict
 from typing import Any, Awaitable, Callable
 
 from aiogram import BaseMiddleware
-from aiogram.types import CallbackQuery, InlineQuery, Message, TelegramObject
+from aiogram.types import (
+    CallbackQuery,
+    InlineQuery,
+    InlineQueryResultsButton,
+    Message,
+    TelegramObject,
+)
 
 
 class RateLimitConfig:
@@ -162,12 +168,14 @@ class RateLimitMiddleware(BaseMiddleware):
 
         match event:
             case InlineQuery():
-                # For inline queries, show a "switch to PM" message
+                # For inline queries, show a button to switch to private message
                 await event.answer(
                     results=[],
                     cache_time=1,
-                    switch_pm_text=f"⏱️ Too many requests, wait {retry_seconds}s",
-                    switch_pm_parameter="rate_limit",
+                    button=InlineQueryResultsButton(
+                        text=f"⏱️ Too many requests, wait {retry_seconds}s",
+                        start_parameter="rate_limit",
+                    ),
                 )
             case CallbackQuery():
                 # For callback queries, show an alert
