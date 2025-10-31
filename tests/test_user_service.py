@@ -215,6 +215,48 @@ async def test_get_playback_data_nothing_playing(
 
 
 @pytest.mark.asyncio
+async def test_get_playback_data_token_expired_with_background_task(
+    telegram_user_id: int, test_track: Track, mocker: MockerFixture
+) -> None:
+    """Test that background recently_played task doesn't cause unawaited exceptions.
+
+    When currently_playing raises SpotifyTokenExpiredError, the decorator refreshes
+    the token and retries. The recently_played background task should be properly
+    handled and not cause unawaited exception warnings.
+    """
+    from unittest.mock import AsyncMock
+
+    from app.spotify.errors import SpotifyTokenExpiredError
+    from app.spotify.models import CurrentlyPlayingResponse
+
+    # First call raises token expired, second call succeeds
+    mock_client = mocker.MagicMock()
+    mock_client.get_currently_playing = AsyncMock(
+        side_effect=[
+            SpotifyTokenExpiredError(),
+            CurrentlyPlayingResponse(
+                is_playing=True,
+                currently_playing_type="track",
+                item=test_track,
+                context=None,
+            ),
+        ]
+    )
+    mock_client.get_recently_played = AsyncMock(
+        side_effect=SpotifyTokenExpiredError()  # Background task also fails
+    )
+    mocker.patch("app.user_service.get_user_spotify_client", return_value=mock_client)
+    mocker.patch("app.user_service.refresh_user_spotify_token", return_value=None)
+
+    # Should succeed after retry, and background task exception should be suppressed
+    result_track, result_context = await get_playback_data(telegram_user_id)
+
+    assert result_track is not None
+    assert result_track.name == test_track.name
+    assert result_context is None
+
+
+@pytest.mark.asyncio
 async def test_logout_user_success(test_user, test_db, telegram_user_id: int) -> None:
     """Test logging out an existing user."""
     from sqlalchemy.ext.asyncio import AsyncSession

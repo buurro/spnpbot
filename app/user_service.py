@@ -133,6 +133,8 @@ async def get_playback_data(user_id: int) -> tuple[Track | None, Contextable | N
     recently_played_task = asyncio.create_task(
         spotify_client.get_recently_played(limit=1),
     )
+    # Suppress exceptions from background task to avoid unawaited warnings
+    recently_played_task.add_done_callback(lambda t: t.exception())
 
     status = await currently_playing_task
 
