@@ -6,7 +6,7 @@ import httpx
 from pydantic import ValidationError
 
 from app.config import config
-from app.logger import logger
+from app.logger import get_logger
 from app.spotify.models import RefreshTokenResponse, TokenResponse
 
 from .errors import (
@@ -15,6 +15,8 @@ from .errors import (
     SpotifyTokenError,
     SpotifyTokenRevokedError,
 )
+
+logger = get_logger(__name__)
 
 
 def get_login_url(state: str) -> str:
@@ -62,13 +64,13 @@ async def get_token(authorization_code: str) -> TokenResponse:
         )
 
         if r.status_code != 200:
-            logger.error(r.text)
+            logger.error("Failed to get token: %s", r.text)
             raise SpotifyAuthError("could not log you in :c")
 
         try:
             token_response = TokenResponse.model_validate_json(r.text)
         except ValidationError:
-            logger.error("invalid token response")
+            logger.exception("Invalid token response")
             raise SpotifyAuthError("could not log you in :c")
 
         return token_response
@@ -89,7 +91,7 @@ async def refresh_token(refresh_token: str) -> RefreshTokenResponse:
         )
 
         if r.status_code == 400:
-            logger.error(r.text)
+            logger.error("Failed to refresh token: %s", r.text)
             try:
                 error_response = r.json()
             except JSONDecodeError:
@@ -103,13 +105,13 @@ async def refresh_token(refresh_token: str) -> RefreshTokenResponse:
                     raise SpotifyTokenError(r.text)
 
         if r.status_code != 200:
-            logger.error(r.text)
+            logger.error("Failed to refresh token: %s", r.text)
             raise SpotifyTokenError("could not refresh token")
 
         try:
             token_response = RefreshTokenResponse.model_validate_json(r.text)
         except ValidationError:
-            logger.error("invalid token response: %s", r.text)
+            logger.error("Invalid token response: %s", r.text)
             raise SpotifyAuthError("could not refresh token")
 
         return token_response

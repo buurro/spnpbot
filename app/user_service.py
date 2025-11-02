@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from functools import wraps
 from typing import ParamSpec, TypeVar
 
-from app.logger import logger
+from app.logger import get_logger
 from app.spotify.api import SpotifyClient
 from app.spotify.auth import refresh_token
 from app.spotify.errors import (
@@ -16,6 +16,8 @@ from app.spotify.models import Contextable, Track
 
 from .db import get_session
 from .models import User
+
+logger = get_logger(__name__)
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -61,7 +63,7 @@ def with_token_refresh(
                 raise TypeError(
                     f"with_token_refresh decorator expects user_id to be int, got {type(user_id)}"
                 )
-            logger.warning("spotify token expired for user %d, refreshing", user_id)
+            logger.warning("Spotify token expired for user %d, refreshing", user_id)
 
             try:
                 await refresh_user_spotify_token(user_id)
@@ -122,7 +124,7 @@ async def refresh_user_spotify_token(telegram_id: int) -> None:
 async def get_playback_data(user_id: int) -> tuple[Track | None, Contextable | None]:
     spotify_client = await get_user_spotify_client(user_id)
     if not spotify_client:
-        logger.warning("no spotify client for user %d", user_id)
+        logger.warning("No Spotify client for user %d", user_id)
         raise UserNotLoggedInError()
 
     # Start both calls concurrently, but await currently_playing first
@@ -140,11 +142,11 @@ async def get_playback_data(user_id: int) -> tuple[Track | None, Contextable | N
 
     if not status or not status.track:
         logger.debug(
-            "no track currently playing for user %d. using recently played", user_id
+            "No track currently playing for user %d, using recently played", user_id
         )
         recently_played = await recently_played_task
         if not recently_played or not recently_played.items:
-            logger.info("no recently played tracks for user %d", user_id)
+            logger.info("No recently played tracks for user %d", user_id)
             return None, None
 
         status = recently_played.items[0]
@@ -163,7 +165,7 @@ async def get_playback_data(user_id: int) -> tuple[Track | None, Contextable | N
 async def add_track_to_queue(user_id: int, track_id: str) -> bool:
     spotify_client = await get_user_spotify_client(user_id)
     if not spotify_client:
-        logger.warning("no spotify client for user %d", user_id)
+        logger.warning("No Spotify client for user %d", user_id)
         raise UserNotLoggedInError()
 
     await spotify_client.add_to_queue(track_id)

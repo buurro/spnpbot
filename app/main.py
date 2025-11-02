@@ -7,8 +7,10 @@ from fastapi import FastAPI
 
 from .bot import bot
 from .config import config
-from .logger import configure_uvicorn_loggers, logger
+from .logger import configure_uvicorn_loggers, get_logger
 from .routes import router
+
+logger = get_logger(__name__)
 
 if config.SENTRY_DSN:
     sentry_sdk.init(

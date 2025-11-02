@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 export ENV_FILE=.env.test
+export LOG_LEVEL=INFO
 export DATABASE_URL="sqlite:///check.db"
 
 rm -f check.db

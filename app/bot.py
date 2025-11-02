@@ -17,7 +17,7 @@ from cachetools import TTLCache
 from app.config import config
 from app.encryption import create_state
 from app.inline_results import build_context_result, build_track_result
-from app.logger import logger
+from app.logger import get_logger
 from app.messages import get_help_message, get_queue_error_message
 from app.rate_limit import RateLimitMiddleware
 from app.spotify.auth import get_login_url
@@ -33,6 +33,8 @@ from app.user_service import (
     get_playback_data,
     logout_user,
 )
+
+logger = get_logger(__name__)
 
 bot = Bot(
     token=config.BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML)
@@ -134,7 +136,7 @@ async def inline_query(query: types.InlineQuery) -> None:
             SpotifyTokenRevokedError,
         ):
             logger.warning(
-                "user %d needs to login/re-authenticate with Spotify", user.id
+                "User %d needs to login/re-authenticate with Spotify", user.id
             )
             button = InlineQueryResultsButton(
                 text="Login with Spotify",
@@ -146,7 +148,7 @@ async def inline_query(query: types.InlineQuery) -> None:
         if context:
             results.append(build_context_result(context))
     elif not button:
-        logger.warning("no track found for user %d", user.id)
+        logger.warning("No track found for user %d", user.id)
 
     try:
         await query.answer(
@@ -156,7 +158,7 @@ async def inline_query(query: types.InlineQuery) -> None:
         )
     except TelegramBadRequest as e:
         if "query is too old" in str(e):
-            logger.debug("inline query %s expired before response", query.id)
+            logger.debug("Inline query %s expired before response", query.id)
         else:
             raise
 
@@ -180,7 +182,7 @@ async def queue_callback(callback: types.CallbackQuery) -> None:
         await callback.answer("Please log in with Spotify first!", show_alert=True)
 
     except (SpotifyInvalidRefreshTokenError, SpotifyTokenRevokedError):
-        logger.warning("user %d needs to re-authenticate with Spotify", user_id)
+        logger.warning("User %d needs to re-authenticate with Spotify", user_id)
         await callback.answer(
             "Your Spotify session expired. Please log in again.", show_alert=True
         )
@@ -189,8 +191,6 @@ async def queue_callback(callback: types.CallbackQuery) -> None:
         logger.warning("Spotify API error for user %d: %s", user_id, e.message)
         await callback.answer(get_queue_error_message(e), show_alert=True)
 
-    except Exception as e:
-        logger.error(
-            "Unexpected error adding to queue for user %d: %s", user_id, str(e)
-        )
+    except Exception:
+        logger.exception("Unexpected error adding to queue for user %d", user_id)
         await callback.answer("An error occurred. Please try again.", show_alert=True)

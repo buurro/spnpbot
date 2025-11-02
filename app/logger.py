@@ -37,7 +37,12 @@ else:
         ],
     )
 
-logger = logging.getLogger(__name__)
+
+def get_logger(name: str) -> logging.Logger:
+    return logging.getLogger(name)
+
+
+logger = get_logger(__name__)
 
 
 def configure_uvicorn_loggers() -> None:

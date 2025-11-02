@@ -6,7 +6,9 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 
 from .config import config
-from .logger import logger
+from .logger import get_logger
+
+logger = get_logger(__name__)
 
 
 # Convert sync database URL to async
@@ -87,10 +89,9 @@ async def get_session(
             retries += 1
 
             if retries > max_retries:
-                logger.error(
-                    "Database session creation failed after %d retries: %s",
+                logger.exception(
+                    "Database session creation failed after %d retries",
                     max_retries,
-                    str(e),
                 )
                 raise
 
@@ -101,6 +102,6 @@ async def get_session(
                 retries,
                 max_retries,
                 delay,
-                str(e),
+                e,
             )
             await asyncio.sleep(delay)

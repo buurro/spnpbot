@@ -5,7 +5,7 @@ import httpx
 from cachetools import TTLCache
 from pydantic import BaseModel, ValidationError
 
-from app.logger import logger
+from app.logger import get_logger
 from app.spotify.errors import SpotifyApiError, SpotifyTokenExpiredError
 
 from .models import (
@@ -17,6 +17,8 @@ from .models import (
     Playlist,
     RecentlyPlayedResponse,
 )
+
+logger = get_logger(__name__)
 
 
 class SpotifyClient(httpx.AsyncClient):
