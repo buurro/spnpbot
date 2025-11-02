@@ -314,124 +314,136 @@ async def test_get_album_token_expired_in_response(
 
 @pytest.mark.asyncio
 @respx.mock
-async def test_get_context_details_album(spotify_client: SpotifyClient) -> None:
-    album_data = {
-        "id": "0ETFjACtuP2ADo6LFhL6HN",
-        "name": "Abbey Road",
-        "external_urls": {
-            "spotify": "https://open.spotify.com/album/0ETFjACtuP2ADo6LFhL6HN"
-        },
-        "artists": [
+@pytest.mark.parametrize(
+    ("context_type", "context_id", "expected_name", "mock_data"),
+    [
+        (
+            "album",
+            "0ETFjACtuP2ADo6LFhL6HN",
+            "Abbey Road",
+            {
+                "id": "0ETFjACtuP2ADo6LFhL6HN",
+                "name": "Abbey Road",
+                "external_urls": {
+                    "spotify": "https://open.spotify.com/album/0ETFjACtuP2ADo6LFhL6HN"
+                },
+                "artists": [
+                    {
+                        "id": "3WrFJ7ztbogyGnTHbHJFl2",
+                        "name": "The Beatles",
+                        "external_urls": {
+                            "spotify": "https://open.spotify.com/artist/3WrFJ7ztbogyGnTHbHJFl2"
+                        },
+                    }
+                ],
+                "images": [
+                    {
+                        "url": "https://i.scdn.co/image/large",
+                        "width": 640,
+                        "height": 640,
+                    }
+                ],
+            },
+        ),
+        (
+            "artist",
+            "3WrFJ7ztbogyGnTHbHJFl2",
+            "The Beatles",
             {
                 "id": "3WrFJ7ztbogyGnTHbHJFl2",
                 "name": "The Beatles",
                 "external_urls": {
                     "spotify": "https://open.spotify.com/artist/3WrFJ7ztbogyGnTHbHJFl2"
                 },
-            }
-        ],
-        "images": [
-            {"url": "https://i.scdn.co/image/large", "width": 640, "height": 640}
-        ],
-    }
-    respx.mock.get("https://api.spotify.com/v1/albums/0ETFjACtuP2ADo6LFhL6HN").mock(
-        return_value=Response(200, json=album_data)
-    )
+                "images": [
+                    {
+                        "url": "https://i.scdn.co/image/large",
+                        "width": 640,
+                        "height": 640,
+                    }
+                ],
+            },
+        ),
+        (
+            "playlist",
+            "37i9dQZF1DXcBWIGoYBM5M",
+            "Today's Top Hits",
+            {
+                "id": "37i9dQZF1DXcBWIGoYBM5M",
+                "name": "Today's Top Hits",
+                "external_urls": {
+                    "spotify": "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M"
+                },
+                "images": [
+                    {
+                        "url": "https://i.scdn.co/image/large",
+                        "width": 640,
+                        "height": 640,
+                    }
+                ],
+            },
+        ),
+    ],
+)
+async def test_get_context_details_by_type(
+    spotify_client: SpotifyClient,
+    context_type: str,
+    context_id: str,
+    expected_name: str,
+    mock_data: dict,
+) -> None:
+    """Test getting context details for different context types."""
+    # Setup appropriate mock based on type
+    if context_type == "album":
+        respx.mock.get(f"https://api.spotify.com/v1/albums/{context_id}").mock(
+            return_value=Response(200, json=mock_data)
+        )
+    elif context_type == "artist":
+        respx.mock.get(f"https://api.spotify.com/v1/artists/{context_id}").mock(
+            return_value=Response(200, json=mock_data)
+        )
+    elif context_type == "playlist":
+        respx.mock.get(
+            f"https://api.spotify.com/v1/playlists/{context_id}",
+            params={"fields": "id,name,external_urls,images"},
+        ).mock(return_value=Response(200, json=mock_data))
 
-    context = Context(type="album", uri="spotify:album:0ETFjACtuP2ADo6LFhL6HN")
+    context = Context(type=context_type, uri=f"spotify:{context_type}:{context_id}")
     result = await spotify_client.get_context_details(context)
 
     assert result is not None
-    assert result.name == "Abbey Road"
+    assert result.name == expected_name
 
 
 @pytest.mark.asyncio
 @respx.mock
-async def test_get_context_details_artist(spotify_client: SpotifyClient) -> None:
-    artist_data = {
-        "id": "3WrFJ7ztbogyGnTHbHJFl2",
-        "name": "The Beatles",
-        "external_urls": {
-            "spotify": "https://open.spotify.com/artist/3WrFJ7ztbogyGnTHbHJFl2"
-        },
-        "images": [
-            {"url": "https://i.scdn.co/image/large", "width": 640, "height": 640}
-        ],
-    }
-    respx.mock.get("https://api.spotify.com/v1/artists/3WrFJ7ztbogyGnTHbHJFl2").mock(
-        return_value=Response(200, json=artist_data)
-    )
-
-    context = Context(type="artist", uri="spotify:artist:3WrFJ7ztbogyGnTHbHJFl2")
+@pytest.mark.parametrize(
+    ("context_type", "context_uri"),
+    [
+        ("collection", "spotify:collection:tracks"),
+        ("unknown", "spotify:unknown:123"),
+    ],
+)
+async def test_get_context_details_unsupported_types(
+    spotify_client: SpotifyClient, context_type: str, context_uri: str
+) -> None:
+    """Test handling of unsupported context types."""
+    context = Context(type=context_type, uri=context_uri)
     result = await spotify_client.get_context_details(context)
 
-    assert result is not None
-    assert result.name == "The Beatles"
-
-
-@pytest.mark.asyncio
-@respx.mock
-async def test_get_context_details_playlist(spotify_client: SpotifyClient) -> None:
-    playlist_data = {
-        "id": "37i9dQZF1DXcBWIGoYBM5M",
-        "name": "Today's Top Hits",
-        "external_urls": {
-            "spotify": "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M"
-        },
-        "images": [
-            {"url": "https://i.scdn.co/image/large", "width": 640, "height": 640}
-        ],
-    }
-    respx.mock.get(
-        "https://api.spotify.com/v1/playlists/37i9dQZF1DXcBWIGoYBM5M",
-        params={"fields": "id,name,external_urls,images"},
-    ).mock(return_value=Response(200, json=playlist_data))
-
-    context = Context(type="playlist", uri="spotify:playlist:37i9dQZF1DXcBWIGoYBM5M")
-    result = await spotify_client.get_context_details(context)
-
-    assert result is not None
-    assert result.name == "Today's Top Hits"
-
-
-@pytest.mark.asyncio
-@respx.mock
-async def test_get_context_details_collection(spotify_client: SpotifyClient) -> None:
-    """Test handling of collection context type (e.g., Liked Songs)."""
-    context = Context(type="collection", uri="spotify:collection:tracks")
-    result = await spotify_client.get_context_details(context)
-
-    # Collections are not retrievable via API, should return None
+    # Unsupported types should return None
     assert result is None
 
 
 @pytest.mark.asyncio
 @respx.mock
-async def test_get_context_details_unknown_type(spotify_client: SpotifyClient) -> None:
-    """Test handling of unknown context type."""
-    context = Context(type="unknown", uri="spotify:unknown:123")
-    result = await spotify_client.get_context_details(context)
-
-    assert result is None
-
-
-@pytest.mark.asyncio
-@respx.mock
-async def test_add_to_queue_success_200(spotify_client: SpotifyClient) -> None:
+@pytest.mark.parametrize("status_code", [200, 204])
+async def test_add_to_queue_success(
+    spotify_client: SpotifyClient, status_code: int
+) -> None:
+    """Test successful add to queue with different success status codes."""
     respx.mock.post("https://api.spotify.com/v1/me/player/queue").mock(
-        return_value=Response(200)
-    )
-
-    result = await spotify_client.add_to_queue("3z8h0TU7ReDPLIbEnYhWZb")
-
-    assert result is True
-
-
-@pytest.mark.asyncio
-@respx.mock
-async def test_add_to_queue_success_204(spotify_client: SpotifyClient) -> None:
-    respx.mock.post("https://api.spotify.com/v1/me/player/queue").mock(
-        return_value=Response(204)
+        return_value=Response(status_code)
     )
 
     result = await spotify_client.add_to_queue("3z8h0TU7ReDPLIbEnYhWZb")
@@ -470,58 +482,41 @@ async def test_add_to_queue_token_expired_in_response(
 
 @pytest.mark.asyncio
 @respx.mock
-async def test_add_to_queue_error_dict_format(spotify_client: SpotifyClient) -> None:
-    """Test error handling with dict error format."""
-    respx.mock.post("https://api.spotify.com/v1/me/player/queue").mock(
-        return_value=Response(
+@pytest.mark.parametrize(
+    ("status_code", "response_data", "expected_message"),
+    [
+        (
             403,
-            json={
-                "error": {"message": "Player command failed: No active device found"}
-            },
+            {"error": {"message": "Player command failed: No active device found"}},
+            "No active device found",
+        ),
+        (400, {"error": "invalid request"}, "invalid request"),
+        (500, None, "An error occurred"),  # Unparseable (text response)
+    ],
+)
+async def test_add_to_queue_error_formats(
+    spotify_client: SpotifyClient,
+    status_code: int,
+    response_data: dict | None,
+    expected_message: str,
+) -> None:
+    """Test error handling with different error response formats."""
+    if response_data:
+        respx.mock.post("https://api.spotify.com/v1/me/player/queue").mock(
+            return_value=Response(status_code, json=response_data)
         )
-    )
+    else:
+        respx.mock.post("https://api.spotify.com/v1/me/player/queue").mock(
+            return_value=Response(status_code, text="Internal Server Error")
+        )
 
     with pytest.raises(SpotifyApiError) as exc_info:
         await spotify_client.add_to_queue("3z8h0TU7ReDPLIbEnYhWZb")
 
     error = exc_info.value
     assert isinstance(error, SpotifyApiError)
-    assert "No active device found" in error.message
-    assert error.status_code == 403
-
-
-@pytest.mark.asyncio
-@respx.mock
-async def test_add_to_queue_error_string_format(spotify_client: SpotifyClient) -> None:
-    """Test error handling with string error format."""
-    respx.mock.post("https://api.spotify.com/v1/me/player/queue").mock(
-        return_value=Response(400, json={"error": "invalid request"})
-    )
-
-    with pytest.raises(SpotifyApiError) as exc_info:
-        await spotify_client.add_to_queue("3z8h0TU7ReDPLIbEnYhWZb")
-
-    error = exc_info.value
-    assert isinstance(error, SpotifyApiError)
-    assert error.message == "invalid request"
-    assert error.status_code == 400
-
-
-@pytest.mark.asyncio
-@respx.mock
-async def test_add_to_queue_error_unparseable(spotify_client: SpotifyClient) -> None:
-    """Test error handling with unparseable response."""
-    respx.mock.post("https://api.spotify.com/v1/me/player/queue").mock(
-        return_value=Response(500, text="Internal Server Error")
-    )
-
-    with pytest.raises(SpotifyApiError) as exc_info:
-        await spotify_client.add_to_queue("3z8h0TU7ReDPLIbEnYhWZb")
-
-    error = exc_info.value
-    assert isinstance(error, SpotifyApiError)
-    assert error.message == "An error occurred"
-    assert error.status_code == 500
+    assert expected_message in error.message
+    assert error.status_code == status_code
 
 
 @pytest.mark.asyncio
@@ -622,26 +617,23 @@ async def test_refresh_token_invalid_json_response() -> None:
 
 @pytest.mark.asyncio
 @respx.mock
-async def test_refresh_token_invalid_refresh_token_error() -> None:
-    """Test handling of invalid refresh token error."""
+@pytest.mark.parametrize(
+    ("error_description", "expected_exception"),
+    [
+        ("Invalid refresh token", SpotifyInvalidRefreshTokenError),
+        ("Refresh token revoked", SpotifyTokenRevokedError),
+    ],
+)
+async def test_refresh_token_specific_errors(
+    error_description: str, expected_exception: type[Exception]
+) -> None:
+    """Test handling of specific refresh token errors."""
     respx.mock.post("https://accounts.spotify.com/api/token").mock(
-        return_value=Response(400, json={"error_description": "Invalid refresh token"})
+        return_value=Response(400, json={"error_description": error_description})
     )
 
-    with pytest.raises(SpotifyInvalidRefreshTokenError):
-        await refresh_token("invalid_refresh_token")
-
-
-@pytest.mark.asyncio
-@respx.mock
-async def test_refresh_token_revoked_error() -> None:
-    """Test handling of revoked refresh token error."""
-    respx.mock.post("https://accounts.spotify.com/api/token").mock(
-        return_value=Response(400, json={"error_description": "Refresh token revoked"})
-    )
-
-    with pytest.raises(SpotifyTokenRevokedError):
-        await refresh_token("revoked_refresh_token")
+    with pytest.raises(expected_exception):
+        await refresh_token("test_refresh_token")
 
 
 @pytest.mark.asyncio

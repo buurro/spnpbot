@@ -79,70 +79,56 @@ def test_validate_state_future_timestamp() -> None:
     assert "future" in str(exc_info.value).lower()
 
 
-def test_validate_state_invalid_format() -> None:
-    """Test state validation fails for invalid format."""
-    # State without colon separator
-    invalid_state = encrypt("12345")
+@pytest.mark.parametrize(
+    ("state_payload", "should_encrypt", "error_substring"),
+    [
+        ("12345", True, "format"),  # No colon separator
+        ("12345:not_a_number", True, "timestamp"),  # Non-numeric timestamp
+        ("not_encrypted_data", False, "invalid"),  # Not encrypted
+    ],
+)
+def test_validate_state_invalid(
+    state_payload: str, should_encrypt: bool, error_substring: str
+) -> None:
+    """Test state validation fails for various invalid inputs."""
+    invalid_state = encrypt(state_payload) if should_encrypt else state_payload
 
     with pytest.raises(ValueError) as exc_info:
         validate_state(invalid_state)
 
-    assert "format" in str(exc_info.value).lower()
+    assert error_substring in str(exc_info.value).lower()
 
 
-def test_validate_state_invalid_timestamp() -> None:
-    """Test state validation fails for non-numeric timestamp."""
-    invalid_state = encrypt("12345:not_a_number")
-
-    with pytest.raises(ValueError) as exc_info:
-        validate_state(invalid_state)
-
-    assert "timestamp" in str(exc_info.value).lower()
-
-
-def test_validate_state_invalid_encryption() -> None:
-    """Test state validation fails for invalid encrypted data."""
-    invalid_state = "not_encrypted_data"
-
-    with pytest.raises(ValueError) as exc_info:
-        validate_state(invalid_state)
-
-    assert "invalid" in str(exc_info.value).lower()
-
-
-def test_validate_state_just_before_expiration() -> None:
-    """Test state is valid just before expiration."""
+@pytest.mark.parametrize(
+    ("offset_seconds", "should_be_valid"),
+    [
+        (5, True),  # Just before expiration (5 seconds before limit)
+        (-1, False),  # Just after expiration (1 second past limit)
+    ],
+)
+def test_validate_state_expiration_boundary(
+    offset_seconds: int, should_be_valid: bool
+) -> None:
+    """Test state validation at expiration boundaries."""
     user_id = "12345"
+    timestamp = int(time.time()) - STATE_EXPIRATION_SECONDS + offset_seconds
+    payload = f"{user_id}:{timestamp}"
+    state = encrypt(payload)
 
-    # Create state that's almost expired (5 seconds before limit)
-    almost_expired_timestamp = int(time.time()) - STATE_EXPIRATION_SECONDS + 5
-    payload = f"{user_id}:{almost_expired_timestamp}"
-    almost_expired_state = encrypt(payload)
-
-    # Should still be valid
-    result = validate_state(almost_expired_state)
-    assert result == user_id
-
-
-def test_validate_state_just_after_expiration() -> None:
-    """Test state is invalid just after expiration."""
-    user_id = "12345"
-
-    # Create state that's just expired (1 second past limit)
-    expired_timestamp = int(time.time()) - STATE_EXPIRATION_SECONDS - 1
-    payload = f"{user_id}:{expired_timestamp}"
-    expired_state = encrypt(payload)
-
-    # Should raise StateExpiredError
-    with pytest.raises(StateExpiredError):
-        validate_state(expired_state)
-
-
-def test_state_preserves_user_id_format() -> None:
-    """Test that user IDs with different formats are preserved."""
-    test_ids = ["123", "987654321", "user_123", "test@example.com"]
-
-    for user_id in test_ids:
-        state = create_state(user_id)
+    if should_be_valid:
         result = validate_state(state)
         assert result == user_id
+    else:
+        with pytest.raises(StateExpiredError):
+            validate_state(state)
+
+
+@pytest.mark.parametrize(
+    "user_id",
+    ["123", "987654321", "user_123", "test@example.com"],
+)
+def test_state_preserves_user_id_format(user_id: str) -> None:
+    """Test that user IDs with different formats are preserved."""
+    state = create_state(user_id)
+    result = validate_state(state)
+    assert result == user_id

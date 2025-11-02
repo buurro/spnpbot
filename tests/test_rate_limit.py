@@ -16,7 +16,7 @@ from app.rate_limit import (
 class TestRateLimiter:
     """Test the RateLimiter class."""
 
-    def test_allow_first_request(self):
+    def test_allow_first_request(self) -> None:
         """Test that first request is always allowed."""
         limiter = RateLimiter()
         is_allowed, retry_after = limiter.check_rate_limit(
@@ -26,7 +26,7 @@ class TestRateLimiter:
         assert is_allowed is True
         assert retry_after == 0.0
 
-    def test_allow_within_limit(self):
+    def test_allow_within_limit(self) -> None:
         """Test that requests within limit are allowed."""
         limiter = RateLimiter()
 
@@ -37,7 +37,7 @@ class TestRateLimiter:
             )
             assert is_allowed is True
 
-    def test_block_when_limit_exceeded(self):
+    def test_block_when_limit_exceeded(self) -> None:
         """Test that requests are blocked when limit is exceeded."""
         limiter = RateLimiter()
 
@@ -55,7 +55,7 @@ class TestRateLimiter:
         assert is_allowed is False
         assert retry_after > 0
 
-    def test_different_users_independent(self):
+    def test_different_users_independent(self) -> None:
         """Test that rate limits are independent per user."""
         limiter = RateLimiter()
 
@@ -74,7 +74,7 @@ class TestRateLimiter:
         )
         assert is_allowed_user2 is True
 
-    def test_different_request_types_independent(self):
+    def test_different_request_types_independent(self) -> None:
         """Test that different request types have independent limits."""
         limiter = RateLimiter()
 
@@ -95,7 +95,7 @@ class TestRateLimiter:
         )
         assert is_allowed_command is True
 
-    def test_sliding_window(self):
+    def test_sliding_window(self) -> None:
         """Test that sliding window works correctly."""
         limiter = RateLimiter()
 
@@ -120,7 +120,7 @@ class TestRateLimiter:
         )
         assert is_allowed is True
 
-    def test_cleanup_old_data(self):
+    def test_cleanup_old_data(self) -> None:
         """Test that old data is cleaned up."""
         limiter = RateLimiter()
         limiter._cleanup_interval = 0  # Force cleanup on every check
@@ -142,17 +142,19 @@ class TestRateLimitMiddleware:
     """Test the RateLimitMiddleware class."""
 
     @pytest.fixture
-    def middleware(self):
+    def middleware(self) -> RateLimitMiddleware:
         """Create a middleware instance."""
         return RateLimitMiddleware()
 
     @pytest.fixture
-    def mock_handler(self):
+    def mock_handler(self) -> AsyncMock:
         """Create a mock handler."""
         return AsyncMock()
 
     @pytest.mark.asyncio
-    async def test_allow_message_within_limit(self, middleware, mock_handler):
+    async def test_allow_message_within_limit(
+        self, middleware: RateLimitMiddleware, mock_handler: AsyncMock
+    ) -> None:
         """Test that messages within rate limit are allowed."""
         message = MagicMock(spec=Message)
         message.from_user = User(id=123, is_bot=False, first_name="Test")
@@ -166,7 +168,9 @@ class TestRateLimitMiddleware:
         mock_handler.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_block_message_exceeding_limit(self, middleware, mock_handler):
+    async def test_block_message_exceeding_limit(
+        self, middleware: RateLimitMiddleware, mock_handler: AsyncMock
+    ) -> None:
         """Test that messages exceeding rate limit are blocked."""
         message = MagicMock(spec=Message)
         message.from_user = User(id=123, is_bot=False, first_name="Test")
@@ -189,7 +193,9 @@ class TestRateLimitMiddleware:
         assert "too quickly" in message.answer.call_args[0][0].lower()
 
     @pytest.mark.asyncio
-    async def test_allow_inline_query_within_limit(self, middleware, mock_handler):
+    async def test_allow_inline_query_within_limit(
+        self, middleware: RateLimitMiddleware, mock_handler: AsyncMock
+    ) -> None:
         """Test that inline queries within rate limit are allowed."""
         inline_query = MagicMock(spec=InlineQuery)
         inline_query.from_user = User(id=123, is_bot=False, first_name="Test")
@@ -203,7 +209,9 @@ class TestRateLimitMiddleware:
         mock_handler.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_block_inline_query_exceeding_limit(self, middleware, mock_handler):
+    async def test_block_inline_query_exceeding_limit(
+        self, middleware: RateLimitMiddleware, mock_handler: AsyncMock
+    ) -> None:
         """Test that inline queries exceeding rate limit are blocked."""
         inline_query = MagicMock(spec=InlineQuery)
         inline_query.from_user = User(id=123, is_bot=False, first_name="Test")
@@ -228,7 +236,9 @@ class TestRateLimitMiddleware:
         assert "Too many requests" in call_kwargs["button"].text
 
     @pytest.mark.asyncio
-    async def test_allow_callback_query_within_limit(self, middleware, mock_handler):
+    async def test_allow_callback_query_within_limit(
+        self, middleware: RateLimitMiddleware, mock_handler: AsyncMock
+    ) -> None:
         """Test that callback queries within rate limit are allowed."""
         callback = MagicMock(spec=CallbackQuery)
         callback.from_user = User(id=123, is_bot=False, first_name="Test")
@@ -242,7 +252,9 @@ class TestRateLimitMiddleware:
         mock_handler.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_block_callback_query_exceeding_limit(self, middleware, mock_handler):
+    async def test_block_callback_query_exceeding_limit(
+        self, middleware: RateLimitMiddleware, mock_handler: AsyncMock
+    ) -> None:
         """Test that callback queries exceeding rate limit are blocked."""
         callback = MagicMock(spec=CallbackQuery)
         callback.from_user = User(id=123, is_bot=False, first_name="Test")
@@ -266,7 +278,9 @@ class TestRateLimitMiddleware:
         assert "slow down" in call_args[0].lower()
 
     @pytest.mark.asyncio
-    async def test_different_users_independent_limits(self, middleware, mock_handler):
+    async def test_different_users_independent_limits(
+        self, middleware: RateLimitMiddleware, mock_handler: AsyncMock
+    ) -> None:
         """Test that rate limits are independent between users."""
         user1_message = MagicMock(spec=Message)
         user1_message.from_user = User(id=1, is_bot=False, first_name="User1")
@@ -293,7 +307,9 @@ class TestRateLimitMiddleware:
         mock_handler.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_allow_event_without_user(self, middleware, mock_handler):
+    async def test_allow_event_without_user(
+        self, middleware: RateLimitMiddleware, mock_handler: AsyncMock
+    ) -> None:
         """Test that events without user info are allowed (fail open)."""
         message = MagicMock(spec=Message)
         message.from_user = None  # No user info

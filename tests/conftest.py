@@ -4,7 +4,10 @@ import os
 import sys
 import warnings
 from datetime import datetime, timedelta, timezone
+from typing import AsyncGenerator
 from unittest.mock import MagicMock
+
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 # Mock sentry_sdk BEFORE any app imports to prevent Sentry initialization
 mock_sentry = MagicMock()
@@ -37,7 +40,7 @@ from app.spotify.models import (
 
 
 @pytest.fixture(scope="session", autouse=True)
-def verify_sentry_disabled():
+def verify_sentry_disabled() -> None:
     """Verify that Sentry is not initialized during tests."""
     from app.config import config
 
@@ -45,16 +48,6 @@ def verify_sentry_disabled():
         "Sentry should not be enabled during tests. "
         "SENTRY_DSN must be empty in .env.test"
     )
-
-    yield
-
-
-@pytest.fixture(scope="session", autouse=True)
-def cleanup_database_connections():
-    """Clean up database connections after all tests to prevent ResourceWarnings."""
-    yield
-    # Can't dispose async engine from sync fixture
-    # Engine cleanup will happen on exit
 
 
 # Filter out ResourceWarnings from sqlite3 connections
@@ -167,7 +160,9 @@ def mock_callback_query(mocker: MockerFixture, telegram_user: TelegramUser) -> M
 
 
 @pytest_asyncio.fixture
-async def test_db(mocker: MockerFixture):
+async def test_db(
+    mocker: MockerFixture,
+) -> AsyncGenerator[AsyncEngine]:
     """Create an in-memory test database."""
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
 
@@ -181,7 +176,7 @@ async def test_db(mocker: MockerFixture):
 
 
 @pytest_asyncio.fixture
-async def test_user(test_db, telegram_user_id: int) -> User:
+async def test_user(test_db: AsyncEngine, telegram_user_id: int) -> User:
     """Create a test user in the database with valid Spotify credentials."""
     async with AsyncSession(test_db, expire_on_commit=False) as session:
         user = User(

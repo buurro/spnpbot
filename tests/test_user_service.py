@@ -4,7 +4,9 @@ from datetime import datetime, timezone
 
 import pytest
 from pytest_mock import MockerFixture
+from sqlalchemy.ext.asyncio import AsyncEngine
 
+from app.models import User
 from app.spotify.api import SpotifyClient
 from app.spotify.models import Album, Track
 from app.user_service import (
@@ -17,7 +19,9 @@ from app.user_service import (
 
 
 @pytest.mark.asyncio
-async def test_get_user_spotify_client_exists(test_user, telegram_user_id: int) -> None:
+async def test_get_user_spotify_client_exists(
+    test_user: User, telegram_user_id: int
+) -> None:
     """Test getting Spotify client for existing user."""
     client = await get_user_spotify_client(telegram_user_id)
 
@@ -28,7 +32,7 @@ async def test_get_user_spotify_client_exists(test_user, telegram_user_id: int) 
 
 
 @pytest.mark.asyncio
-async def test_get_user_spotify_client_not_exists(test_db) -> None:
+async def test_get_user_spotify_client_not_exists(test_db: AsyncEngine) -> None:
     """Test getting Spotify client for non-existent user."""
     client = await get_user_spotify_client(99999)
     assert client is None
@@ -36,7 +40,7 @@ async def test_get_user_spotify_client_not_exists(test_db) -> None:
 
 @pytest.mark.asyncio
 async def test_refresh_user_spotify_token(
-    test_user, test_db, telegram_user_id: int, mocker: MockerFixture
+    test_user: User, test_db: AsyncEngine, telegram_user_id: int, mocker: MockerFixture
 ) -> None:
     """Test refreshing user Spotify token."""
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -63,7 +67,7 @@ async def test_refresh_user_spotify_token(
 
 
 @pytest.mark.asyncio
-async def test_refresh_user_spotify_token_user_not_found(test_db) -> None:
+async def test_refresh_user_spotify_token_user_not_found(test_db: AsyncEngine) -> None:
     """Test refreshing token for non-existent user."""
     # Should not raise an error, just return
     await refresh_user_spotify_token(99999)
@@ -71,7 +75,7 @@ async def test_refresh_user_spotify_token_user_not_found(test_db) -> None:
 
 @pytest.mark.asyncio
 async def test_refresh_user_spotify_token_invalid_token(
-    test_user, test_db, telegram_user_id: int, mocker: MockerFixture
+    test_user: User, test_db: AsyncEngine, telegram_user_id: int, mocker: MockerFixture
 ) -> None:
     """Test that invalid refresh tokens are handled and cleared."""
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -99,7 +103,7 @@ async def test_refresh_user_spotify_token_invalid_token(
 
 @pytest.mark.asyncio
 async def test_refresh_user_spotify_token_revoked_token(
-    test_user, test_db, telegram_user_id: int, mocker: MockerFixture
+    test_user: User, test_db: AsyncEngine, telegram_user_id: int, mocker: MockerFixture
 ) -> None:
     """Test that revoked refresh tokens are handled and cleared."""
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -257,7 +261,9 @@ async def test_get_playback_data_token_expired_with_background_task(
 
 
 @pytest.mark.asyncio
-async def test_logout_user_success(test_user, test_db, telegram_user_id: int) -> None:
+async def test_logout_user_success(
+    test_user: User, test_db: AsyncEngine, telegram_user_id: int
+) -> None:
     """Test logging out an existing user."""
     from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -279,7 +285,7 @@ async def test_logout_user_success(test_user, test_db, telegram_user_id: int) ->
 
 
 @pytest.mark.asyncio
-async def test_logout_user_not_found(test_db) -> None:
+async def test_logout_user_not_found(test_db: AsyncEngine) -> None:
     """Test logging out a non-existent user."""
     result = await logout_user(99999)
     assert result is False

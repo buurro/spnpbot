@@ -1,13 +1,15 @@
+from collections.abc import Callable
+
 import pytest
 from pytest_mock import MockerFixture, MockType
 
 from app import bot
-from app.spotify.models import Album, Track
+from app.spotify.models import Album, CurrentlyPlayingResponse, Track
 from app.user_service import UserNotLoggedInError
 
 
 @pytest.fixture
-def mock_playback_data(mocker: MockerFixture, test_track: Track):
+def mock_playback_data(mocker: MockerFixture, test_track: Track) -> Track:
     """Mock the playback data function to return test track."""
 
     async def mock_get_playback_data(user_id: int) -> tuple[Track | None, None]:
@@ -79,7 +81,7 @@ async def test_inline_query_token_expired(
     # Mock the underlying Spotify client to raise SpotifyTokenExpiredError first
     call_count = 0
 
-    async def mock_get_currently_playing():
+    async def mock_get_currently_playing() -> CurrentlyPlayingResponse:
         nonlocal call_count
         call_count += 1
         if call_count == 1:
@@ -87,8 +89,6 @@ async def test_inline_query_token_expired(
 
             raise SpotifyTokenExpiredError()
         # Return successful response on retry
-        from app.spotify.models import CurrentlyPlayingResponse
-
         return CurrentlyPlayingResponse(
             is_playing=True,
             currently_playing_type="track",
@@ -192,56 +192,6 @@ async def test_queue_callback_not_logged_in(
 
 
 @pytest.mark.asyncio
-async def test_queue_callback_no_active_device(
-    mock_callback_query: MockType, mocker: MockerFixture
-) -> None:
-    """Test queue callback when no active device found."""
-    from unittest.mock import AsyncMock
-
-    from app.spotify.errors import SpotifyApiError
-
-    mock_callback_query.data = "queue;track123"
-
-    # Mock spotify client that raises API error
-    mock_client = mocker.Mock()
-    mock_client.add_to_queue = AsyncMock(
-        side_effect=SpotifyApiError("No active device found", 404)
-    )
-    mocker.patch("app.user_service.get_user_spotify_client", return_value=mock_client)
-
-    await bot.queue_callback(mock_callback_query)
-
-    mock_callback_query.answer.assert_awaited_once_with(
-        "No active device found", show_alert=True
-    )
-
-
-@pytest.mark.asyncio
-async def test_queue_callback_premium_required(
-    mock_callback_query: MockType, mocker: MockerFixture
-) -> None:
-    """Test queue callback when Spotify Premium is required."""
-    from unittest.mock import AsyncMock
-
-    from app.spotify.errors import SpotifyApiError
-
-    mock_callback_query.data = "queue;track123"
-
-    # Mock spotify client that raises API error
-    mock_client = mocker.Mock()
-    mock_client.add_to_queue = AsyncMock(
-        side_effect=SpotifyApiError("Player command failed: Premium required", 403)
-    )
-    mocker.patch("app.user_service.get_user_spotify_client", return_value=mock_client)
-
-    await bot.queue_callback(mock_callback_query)
-
-    mock_callback_query.answer.assert_awaited_once_with(
-        "This requires Spotify Premium", show_alert=True
-    )
-
-
-@pytest.mark.asyncio
 async def test_queue_callback_token_expired(
     mock_callback_query: MockType, mocker: MockerFixture, telegram_user_id: int
 ) -> None:
@@ -257,7 +207,7 @@ async def test_queue_callback_token_expired(
     # Mock spotify client that raises token expired error first, then succeeds
     call_count = 0
 
-    async def mock_add_to_queue(track_id: str):
+    async def mock_add_to_queue(track_id: str) -> bool:
         nonlocal call_count
         call_count += 1
         if call_count == 1:
@@ -380,10 +330,27 @@ async def test_inline_query_with_playlist_context(
 
 
 @pytest.mark.asyncio
-async def test_queue_callback_restricted_device(
-    mock_callback_query: MockType, mocker: MockerFixture
+@pytest.mark.parametrize(
+    ("error_message", "status_code", "expected_response"),
+    [
+        (
+            "Player command failed: Premium required",
+            403,
+            "This requires Spotify Premium",
+        ),
+        ("Restricted device", 403, "Your device is not supported"),
+        ("No active device found", 404, "No active device found"),
+        ("Some other error", 500, "An error occurred"),
+    ],
+)
+async def test_queue_callback_api_errors(
+    mock_callback_query: MockType,
+    mocker: MockerFixture,
+    error_message: str,
+    status_code: int,
+    expected_response: str,
 ) -> None:
-    """Test queue callback when device is restricted."""
+    """Test queue callback with various Spotify API errors."""
     from unittest.mock import AsyncMock
 
     from app.spotify.errors import SpotifyApiError
@@ -392,38 +359,14 @@ async def test_queue_callback_restricted_device(
 
     mock_client = mocker.Mock()
     mock_client.add_to_queue = AsyncMock(
-        side_effect=SpotifyApiError("Restricted device", 403)
+        side_effect=SpotifyApiError(error_message, status_code)
     )
     mocker.patch("app.user_service.get_user_spotify_client", return_value=mock_client)
 
     await bot.queue_callback(mock_callback_query)
 
     mock_callback_query.answer.assert_awaited_once_with(
-        "Your device is not supported", show_alert=True
-    )
-
-
-@pytest.mark.asyncio
-async def test_queue_callback_generic_error(
-    mock_callback_query: MockType, mocker: MockerFixture
-) -> None:
-    """Test queue callback with generic Spotify API error."""
-    from unittest.mock import AsyncMock
-
-    from app.spotify.errors import SpotifyApiError
-
-    mock_callback_query.data = "queue;track123"
-
-    mock_client = mocker.Mock()
-    mock_client.add_to_queue = AsyncMock(
-        side_effect=SpotifyApiError("Some other error", 500)
-    )
-    mocker.patch("app.user_service.get_user_spotify_client", return_value=mock_client)
-
-    await bot.queue_callback(mock_callback_query)
-
-    mock_callback_query.answer.assert_awaited_once_with(
-        "An error occurred", show_alert=True
+        expected_response, show_alert=True
     )
 
 
@@ -472,8 +415,14 @@ async def test_inline_query_cache_hit(
 
 
 @pytest.mark.asyncio
-async def test_help_no_user(mocker: MockerFixture) -> None:
-    """Test /help command when message has no user (edge case)."""
+@pytest.mark.parametrize(
+    "command_handler",
+    [bot.help, bot.start, bot.logout],
+)
+async def test_commands_no_user(
+    mocker: MockerFixture, command_handler: Callable
+) -> None:
+    """Test command handlers when message has no user (edge case)."""
     from aiogram import types
 
     # Create message with no user
@@ -482,39 +431,7 @@ async def test_help_no_user(mocker: MockerFixture) -> None:
     message.answer = mocker.AsyncMock()
 
     # Should log error and return early without calling answer
-    await bot.help(message)
-
-    message.answer.assert_not_awaited()
-
-
-@pytest.mark.asyncio
-async def test_start_no_user(mocker: MockerFixture) -> None:
-    """Test /start command when message has no user (edge case)."""
-    from aiogram import types
-
-    # Create message with no user
-    message = mocker.Mock(spec=types.Message)
-    message.from_user = None
-    message.answer = mocker.AsyncMock()
-
-    # Should log error and return early without calling answer
-    await bot.start(message)
-
-    message.answer.assert_not_awaited()
-
-
-@pytest.mark.asyncio
-async def test_logout_no_user(mocker: MockerFixture) -> None:
-    """Test /logout command when message has no user (edge case)."""
-    from aiogram import types
-
-    # Create message with no user
-    message = mocker.Mock(spec=types.Message)
-    message.from_user = None
-    message.answer = mocker.AsyncMock()
-
-    # Should log error and return early without calling answer
-    await bot.logout(message)
+    await command_handler(message)
 
     message.answer.assert_not_awaited()
 
@@ -553,40 +470,25 @@ async def test_inline_query_other_telegram_error(
 
 
 @pytest.mark.asyncio
-async def test_queue_callback_invalid_refresh_token(
-    mock_callback_query: MockType, mocker: MockerFixture
+@pytest.mark.parametrize(
+    "error_class",
+    ["SpotifyInvalidRefreshTokenError", "SpotifyTokenRevokedError"],
+)
+async def test_queue_callback_token_errors(
+    mock_callback_query: MockType, mocker: MockerFixture, error_class: str
 ) -> None:
-    """Test queue callback with invalid refresh token."""
+    """Test queue callback with token-related errors."""
     from unittest.mock import AsyncMock
 
-    from app.spotify.errors import SpotifyInvalidRefreshTokenError
+    from app.spotify import errors
 
     mock_callback_query.data = "queue;track123"
 
-    mock_client = mocker.Mock()
-    mock_client.add_to_queue = AsyncMock(side_effect=SpotifyInvalidRefreshTokenError())
-    mocker.patch("app.user_service.get_user_spotify_client", return_value=mock_client)
-
-    await bot.queue_callback(mock_callback_query)
-
-    mock_callback_query.answer.assert_awaited_once_with(
-        "Your Spotify session expired. Please log in again.", show_alert=True
-    )
-
-
-@pytest.mark.asyncio
-async def test_queue_callback_token_revoked(
-    mock_callback_query: MockType, mocker: MockerFixture
-) -> None:
-    """Test queue callback with revoked token."""
-    from unittest.mock import AsyncMock
-
-    from app.spotify.errors import SpotifyTokenRevokedError
-
-    mock_callback_query.data = "queue;track123"
+    # Get the error class dynamically
+    error_exception = getattr(errors, error_class)()
 
     mock_client = mocker.Mock()
-    mock_client.add_to_queue = AsyncMock(side_effect=SpotifyTokenRevokedError())
+    mock_client.add_to_queue = AsyncMock(side_effect=error_exception)
     mocker.patch("app.user_service.get_user_spotify_client", return_value=mock_client)
 
     await bot.queue_callback(mock_callback_query)

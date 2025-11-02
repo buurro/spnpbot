@@ -2,6 +2,7 @@
 !.env.test
 .claude/settings.local.json
 database.db
+check.db
 result
 
 # Python-generated files

@@ -35,9 +35,7 @@ jobs:
         run: uv run pytest -v --tb=short
 
       - name: Check database migrations
-        run: |
-          ENV_FILE=.env.test uv run alembic upgrade head
-          ENV_FILE=.env.test uv run alembic check
+        run: bash ./scripts/check-migrations.sh
 
       - name: Upload test results
         if: always()

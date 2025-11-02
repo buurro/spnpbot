@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Convenience script to run all checks locally before committing
 
 set -e  # Exit on error
@@ -31,9 +31,7 @@ echo "✅ Tests and coverage passed"
 echo ""
 
 echo "🗄️  Checking database migrations..."
-# Use .env.test for alembic commands (pydantic-settings will load it)
-ENV_FILE=.env.test uv run alembic upgrade head > /dev/null 2>&1
-ENV_FILE=.env.test uv run alembic check
+bash ./scripts/check-migrations.sh
 echo "✅ Migrations are up to date"
 echo ""
 

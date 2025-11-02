@@ -1,5 +1,7 @@
 """Tests for main.py endpoints."""
 
+import time
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock
 
@@ -44,62 +46,44 @@ def telegram_update_data() -> dict:
     }
 
 
+@pytest.mark.parametrize(
+    ("secret_token", "expected_ok", "should_call_feed"),
+    [
+        (config.BOT_WEBHOOK_SECRET, True, True),  # Valid secret
+        ("wrong_secret", False, False),  # Invalid secret
+        (None, False, False),  # Missing secret
+    ],
+)
 def test_telegram_webhook(
-    client: TestClient, telegram_update_data: dict, mocker: MockerFixture
+    client: TestClient,
+    telegram_update_data: dict,
+    mocker: MockerFixture,
+    secret_token: str | None,
+    expected_ok: bool,
+    should_call_feed: bool,
 ) -> None:
-    """Test telegram webhook endpoint with valid secret."""
+    """Test telegram webhook endpoint with various secret token scenarios."""
     # Mock the dispatcher
     mock_feed = mocker.patch("app.routes.dp.feed_update", new_callable=AsyncMock)
 
-    # Call the endpoint with valid secret token
+    # Build headers
+    headers = {"X-Telegram-Bot-Api-Secret-Token": secret_token} if secret_token else {}
+
+    # Call the endpoint
     response = client.post(
         config.BOT_WEBHOOK_PATH,
         json=telegram_update_data,
-        headers={"X-Telegram-Bot-Api-Secret-Token": config.BOT_WEBHOOK_SECRET},
+        headers=headers,
     )
 
     # Assertions
     assert response.status_code == 200
-    assert response.json() == {"ok": True}
-    mock_feed.assert_awaited_once()
+    assert response.json() == {"ok": expected_ok}
 
-
-def test_telegram_webhook_invalid_secret(
-    client: TestClient, telegram_update_data: dict, mocker: MockerFixture
-) -> None:
-    # Mock the dispatcher
-    mock_feed = mocker.patch("app.routes.dp.feed_update", new_callable=AsyncMock)
-
-    # Call the endpoint with invalid secret token
-    response = client.post(
-        config.BOT_WEBHOOK_PATH,
-        json=telegram_update_data,
-        headers={"X-Telegram-Bot-Api-Secret-Token": "wrong_secret"},
-    )
-
-    # Assertions
-    assert response.status_code == 200
-    assert response.json() == {"ok": False}
-    mock_feed.assert_not_awaited()
-
-
-def test_telegram_webhook_missing_secret(
-    client: TestClient, telegram_update_data: dict, mocker: MockerFixture
-) -> None:
-    """Test telegram webhook endpoint with missing secret token header."""
-    # Mock the dispatcher
-    mock_feed = mocker.patch("app.routes.dp.feed_update", new_callable=AsyncMock)
-
-    # Call the endpoint without secret token header
-    response = client.post(
-        config.BOT_WEBHOOK_PATH,
-        json=telegram_update_data,
-    )
-
-    # Assertions
-    assert response.status_code == 200
-    assert response.json() == {"ok": False}
-    mock_feed.assert_not_awaited()
+    if should_call_feed:
+        mock_feed.assert_awaited_once()
+    else:
+        mock_feed.assert_not_awaited()
 
 
 def test_spotify_callback_success(client: TestClient, mocker: MockerFixture) -> None:
@@ -214,9 +198,26 @@ def test_spotify_callback_duplicate_login(
     assert mock_send_message.await_count == 2
 
 
-def test_spotify_callback_error_parameter(
-    client: TestClient, mocker: MockerFixture
+@pytest.mark.parametrize(
+    ("params_override", "mock_setup"),
+    [
+        ({"error": "access_denied"}, None),  # Error parameter
+        ({}, None),  # Missing code (empty override keeps only state)
+        (
+            {"code": "invalid_code"},
+            lambda m: m.patch(
+                "app.routes.get_token", side_effect=SpotifyAuthError("Invalid code")
+            ),
+        ),  # Auth error
+    ],
+)
+def test_spotify_callback_error_scenarios(
+    client: TestClient,
+    mocker: MockerFixture,
+    params_override: dict,
+    mock_setup: Callable | None,
 ) -> None:
+    """Test various Spotify callback error scenarios that redirect to Telegram."""
     state = create_state("12345")
 
     # Mock bot.get_me()
@@ -224,110 +225,59 @@ def test_spotify_callback_error_parameter(
     mock_bot_info.username = "testbot"
     mocker.patch("app.routes.bot.get_me", return_value=mock_bot_info)
 
-    # Call the endpoint with error
-    response = client.get(
-        config.SPOTIFY_CALLBACK_PATH,
-        params={"error": "access_denied", "state": state},
-        follow_redirects=False,
-    )
+    # Apply additional mocking if needed
+    if mock_setup:
+        mock_setup(mocker)
 
-    # Assertions
-    assert response.status_code == 307  # Redirect
-    assert response.headers["location"] == "https://t.me/testbot"
-
-
-def test_spotify_callback_missing_code(
-    client: TestClient, mocker: MockerFixture
-) -> None:
-    state = create_state("12345")
-
-    # Mock bot.get_me()
-    mock_bot_info = mocker.MagicMock()
-    mock_bot_info.username = "testbot"
-    mocker.patch("app.routes.bot.get_me", return_value=mock_bot_info)
-
-    # Call the endpoint without code
-    response = client.get(
-        config.SPOTIFY_CALLBACK_PATH,
-        params={"state": state},
-        follow_redirects=False,
-    )
-
-    # Assertions
-    assert response.status_code == 307  # Redirect
-    assert response.headers["location"] == "https://t.me/testbot"
-
-
-def test_spotify_callback_auth_error(client: TestClient, mocker: MockerFixture) -> None:
-    state = create_state("12345")
-
-    # Mock bot.get_me()
-    mock_bot_info = mocker.MagicMock()
-    mock_bot_info.username = "testbot"
-    mocker.patch("app.routes.bot.get_me", return_value=mock_bot_info)
-
-    # Mock get_token to raise SpotifyAuthError
-    mocker.patch("app.routes.get_token", side_effect=SpotifyAuthError("Invalid code"))
+    # Build params - always include state, override with specific params
+    params = {"state": state}
+    params.update(params_override)
 
     # Call the endpoint
     response = client.get(
         config.SPOTIFY_CALLBACK_PATH,
-        params={"code": "invalid_code", "state": state},
+        params=params,
         follow_redirects=False,
     )
 
-    # Assertions
-    assert response.status_code == 307  # Redirect
+    # All error scenarios should redirect to Telegram
+    assert response.status_code == 307
     assert response.headers["location"] == "https://t.me/testbot"
 
 
-def test_spotify_callback_expired_state(
-    client: TestClient, mocker: MockerFixture
+@pytest.mark.parametrize(
+    "is_expired",
+    [True, False],
+)
+def test_spotify_callback_invalid_state_scenarios(
+    client: TestClient, mocker: MockerFixture, is_expired: bool
 ) -> None:
-    """Test callback with expired state parameter."""
-    import time
-
+    """Test callback with expired or invalid state parameter."""
     from app.encryption import STATE_EXPIRATION_SECONDS, encrypt
 
-    # Create an expired state (older than expiration time)
-    old_timestamp = int(time.time()) - STATE_EXPIRATION_SECONDS - 100
-    expired_state = encrypt(f"12345:{old_timestamp}")
-
     # Mock bot.get_me()
     mock_bot_info = mocker.MagicMock()
     mock_bot_info.username = "testbot"
     mocker.patch("app.routes.bot.get_me", return_value=mock_bot_info)
 
-    # Call the endpoint with expired state
+    # Generate the state
+    if is_expired:
+        # Create an expired state
+        old_timestamp = int(time.time()) - STATE_EXPIRATION_SECONDS - 100
+        state = encrypt(f"12345:{old_timestamp}")
+    else:
+        # Invalid state
+        state = "invalid_state_data"
+
+    # Call the endpoint
     response = client.get(
         config.SPOTIFY_CALLBACK_PATH,
-        params={"code": "test_code", "state": expired_state},
+        params={"code": "test_code", "state": state},
         follow_redirects=False,
     )
 
-    # Assertions - should redirect to Telegram without processing
-    assert response.status_code == 307  # Redirect
-    assert response.headers["location"] == "https://t.me/testbot"
-
-
-def test_spotify_callback_invalid_state(
-    client: TestClient, mocker: MockerFixture
-) -> None:
-    """Test callback with invalid state parameter."""
-    # Mock bot.get_me()
-    mock_bot_info = mocker.MagicMock()
-    mock_bot_info.username = "testbot"
-    mocker.patch("app.routes.bot.get_me", return_value=mock_bot_info)
-
-    # Call the endpoint with invalid state
-    response = client.get(
-        config.SPOTIFY_CALLBACK_PATH,
-        params={"code": "test_code", "state": "invalid_state_data"},
-        follow_redirects=False,
-    )
-
-    # Assertions - should redirect to Telegram without processing
-    assert response.status_code == 307  # Redirect
+    # Should redirect to Telegram without processing
+    assert response.status_code == 307
     assert response.headers["location"] == "https://t.me/testbot"
 
 
