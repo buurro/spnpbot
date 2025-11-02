@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta, timezone
+from typing import Annotated
 
 from aiogram.types import Update
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Header, HTTPException
 from fastapi.responses import RedirectResponse
 
 from app.bot import bot, dp
@@ -21,17 +22,17 @@ async def health_check() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@router.post(config.BOT_WEBHOOK_PATH)
-async def telegram_webhook(request: Request) -> dict[str, bool]:
-    # Validate Telegram webhook secret token
-    secret_token = request.headers.get("X-Telegram-Bot-Api-Secret-Token")
-    if secret_token != config.BOT_WEBHOOK_SECRET:
+@router.post(config.BOT_WEBHOOK_PATH, include_in_schema=False)
+async def telegram_webhook(
+    update: Update,
+    x_telegram_bot_api_secret_token: Annotated[str, Header()],
+) -> dict[str, bool]:
+    if x_telegram_bot_api_secret_token != config.BOT_WEBHOOK_SECRET:
         logger.warning("Invalid webhook secret token")
-        return {"ok": False}
+        raise HTTPException(status_code=401, detail="Invalid secret token")
 
-    data = await request.json()
-    update = Update.model_validate(data)
     await dp.feed_update(bot=bot, update=update)
+
     return {"ok": True}
 
 

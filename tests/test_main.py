@@ -46,44 +46,60 @@ def telegram_update_data() -> dict:
     }
 
 
-@pytest.mark.parametrize(
-    ("secret_token", "expected_ok", "should_call_feed"),
-    [
-        (config.BOT_WEBHOOK_SECRET, True, True),  # Valid secret
-        ("wrong_secret", False, False),  # Invalid secret
-        (None, False, False),  # Missing secret
-    ],
-)
-def test_telegram_webhook(
+def test_telegram_webhook_valid_token(
     client: TestClient,
     telegram_update_data: dict,
     mocker: MockerFixture,
-    secret_token: str | None,
-    expected_ok: bool,
-    should_call_feed: bool,
 ) -> None:
-    """Test telegram webhook endpoint with various secret token scenarios."""
-    # Mock the dispatcher
+    """Test telegram webhook with valid secret token."""
     mock_feed = mocker.patch("app.routes.dp.feed_update", new_callable=AsyncMock)
 
-    # Build headers
-    headers = {"X-Telegram-Bot-Api-Secret-Token": secret_token} if secret_token else {}
-
-    # Call the endpoint
     response = client.post(
         config.BOT_WEBHOOK_PATH,
         json=telegram_update_data,
-        headers=headers,
+        headers={"X-Telegram-Bot-Api-Secret-Token": config.BOT_WEBHOOK_SECRET},
     )
 
-    # Assertions
     assert response.status_code == 200
-    assert response.json() == {"ok": expected_ok}
+    assert response.json() == {"ok": True}
+    mock_feed.assert_awaited_once()
 
-    if should_call_feed:
-        mock_feed.assert_awaited_once()
-    else:
-        mock_feed.assert_not_awaited()
+
+def test_telegram_webhook_invalid_token(
+    client: TestClient,
+    telegram_update_data: dict,
+    mocker: MockerFixture,
+) -> None:
+    """Test telegram webhook with invalid secret token returns 401."""
+    mock_feed = mocker.patch("app.routes.dp.feed_update", new_callable=AsyncMock)
+
+    response = client.post(
+        config.BOT_WEBHOOK_PATH,
+        json=telegram_update_data,
+        headers={"X-Telegram-Bot-Api-Secret-Token": "wrong_secret"},
+    )
+
+    assert response.status_code == 401
+    assert response.json() == {"detail": "Invalid secret token"}
+    mock_feed.assert_not_awaited()
+
+
+def test_telegram_webhook_missing_token(
+    client: TestClient,
+    telegram_update_data: dict,
+    mocker: MockerFixture,
+) -> None:
+    """Test telegram webhook with missing secret token returns 422."""
+    mock_feed = mocker.patch("app.routes.dp.feed_update", new_callable=AsyncMock)
+
+    response = client.post(
+        config.BOT_WEBHOOK_PATH,
+        json=telegram_update_data,
+        headers={},
+    )
+
+    assert response.status_code == 422
+    mock_feed.assert_not_awaited()
 
 
 def test_spotify_callback_success(client: TestClient, mocker: MockerFixture) -> None:
