@@ -80,6 +80,8 @@ async def spotify_auth_callback(
         await session.merge(user)
         await session.commit()
 
+    logger.info("User %s logged in successfully", telegram_user_id)
+
     try:
         await bot.send_message(
             chat_id=int(telegram_user_id),
