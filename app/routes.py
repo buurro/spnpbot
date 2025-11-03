@@ -57,17 +57,16 @@ async def spotify_auth_callback(
     try:
         telegram_user_id = int(validate_state(state))
     except StateExpiredError as e:
-        logger.error("State expired: %s", str(e))
-        # Send error message to user if possible
+        logger.info(e)
         return RedirectResponse(url=telegram_url)
-    except (ValueError, TypeError) as e:
-        logger.error("Invalid state: %s", str(e))
+    except (ValueError, TypeError):
+        logger.exception("Invalid state")
         return RedirectResponse(url=telegram_url)
 
     try:
         token_response = await get_token(code)
-    except SpotifyAuthError as e:
-        logger.error("Spotify auth error: %s", e)
+    except SpotifyAuthError:
+        logger.exception("Spotify auth error")
         return RedirectResponse(url=telegram_url)
 
     user = User(

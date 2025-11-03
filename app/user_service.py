@@ -63,7 +63,7 @@ def with_token_refresh(
                 raise TypeError(
                     f"with_token_refresh decorator expects user_id to be int, got {type(user_id)}"
                 )
-            logger.warning("Spotify token expired for user %d, refreshing", user_id)
+            logger.info("Spotify token expired for user %d, refreshing", user_id)
 
             try:
                 await refresh_user_spotify_token(user_id)
@@ -98,11 +98,10 @@ async def refresh_user_spotify_token(telegram_id: int) -> None:
 
         try:
             response = await refresh_token(user.spotify_refresh_token)
-        except (SpotifyInvalidRefreshTokenError, SpotifyTokenRevokedError) as e:
-            logger.error(
-                "Failed to refresh token for user %d: %s. Clearing tokens.",
+        except (SpotifyInvalidRefreshTokenError, SpotifyTokenRevokedError):
+            logger.exception(
+                "Failed to refresh token for user %d. Clearing tokens.",
                 telegram_id,
-                type(e).__name__,
             )
             # Clear the user's Spotify tokens as they need to re-authenticate
             user.spotify_access_token = ""

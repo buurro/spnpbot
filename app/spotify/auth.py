@@ -111,7 +111,7 @@ async def refresh_token(refresh_token: str) -> RefreshTokenResponse:
         try:
             token_response = RefreshTokenResponse.model_validate_json(r.text)
         except ValidationError:
-            logger.error("Invalid token response: %s", r.text)
+            logger.exception("Invalid token response: %s", r.text)
             raise SpotifyAuthError("could not refresh token")
 
         return token_response
