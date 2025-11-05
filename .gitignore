@@ -19,3 +19,4 @@ wheels/
 # Coverage reports
 htmlcov/
 .coverage
+coverage.xml

@@ -32,7 +32,7 @@ jobs:
         run: uv run ty check .
 
       - name: Run pytest
-        run: uv run pytest -v --tb=short
+        run: uv run pytest -v --tb=short --cov-report=xml
 
       - name: Check database migrations
         run: bash ./scripts/check-migrations.sh
@@ -43,6 +43,6 @@ jobs:
         with:
           name: test-results
           path: |
-            .pytest_cache/
             coverage.xml
+            htmlcov/
           retention-days: 7
