@@ -1,4 +1,3 @@
-import asyncio
 from collections.abc import Awaitable, Callable
 from datetime import datetime, timedelta, timezone
 from functools import wraps
@@ -126,32 +125,18 @@ async def get_playback_data(user_id: int) -> tuple[Track | None, Contextable | N
         logger.warning("No Spotify client for user %d", user_id)
         raise UserNotLoggedInError()
 
-    # Start both calls concurrently, but await currently_playing first
-    currently_playing_task = asyncio.create_task(
-        spotify_client.get_currently_playing(),
-    )
-
-    recently_played_task = asyncio.create_task(
-        spotify_client.get_recently_played(limit=1),
-    )
-    # Suppress exceptions from background task to avoid unawaited warnings
-    recently_played_task.add_done_callback(lambda t: t.exception())
-
-    status = await currently_playing_task
+    status = await spotify_client.get_currently_playing()
 
     if not status or not status.track:
         logger.debug(
             "No track currently playing for user %d, using recently played", user_id
         )
-        recently_played = await recently_played_task
+        recently_played = await spotify_client.get_recently_played(limit=1)
         if not recently_played or not recently_played.items:
             logger.info("No recently played tracks for user %d", user_id)
             return None, None
 
         status = recently_played.items[0]
-    else:
-        # Cancel the recently_played task since we don't need it
-        recently_played_task.cancel()
 
     context = None
     if status.context:
