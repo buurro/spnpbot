@@ -621,6 +621,7 @@ async def test_refresh_token_invalid_json_response() -> None:
     ("error_description", "expected_exception"),
     [
         ("Invalid refresh token", SpotifyInvalidRefreshTokenError),
+        ("refresh_token must be supplied", SpotifyInvalidRefreshTokenError),
         ("Refresh token revoked", SpotifyTokenRevokedError),
     ],
 )

@@ -99,6 +99,8 @@ async def refresh_token(refresh_token: str) -> RefreshTokenResponse:
             match error_response.get("error_description"):
                 case "Invalid refresh token":
                     raise SpotifyInvalidRefreshTokenError()
+                case "refresh_token must be supplied":
+                    raise SpotifyInvalidRefreshTokenError()
                 case "Refresh token revoked":
                     raise SpotifyTokenRevokedError()
                 case _:
