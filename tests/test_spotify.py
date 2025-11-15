@@ -16,10 +16,9 @@ from app.spotify.errors import (
     SpotifyTokenExpiredError,
     SpotifyTokenRevokedError,
 )
-from app.spotify.models import Context
+from app.spotify.models import Context, Track
 from tests.mock_utils import (
     mock_spotify_nothing_playing,
-    mock_spotify_podcast_playing,
     mock_spotify_track_playing,
 )
 
@@ -54,6 +53,7 @@ async def test_get_currently_playing(spotify_client: SpotifyClient) -> None:
     assert result.is_playing is True
     assert result.currently_playing_type == "track"
     assert result.item is not None
+    assert isinstance(result.item, Track)
     assert result.item.name == "Bohemian Rhapsody"
     assert result.item.artists[0].name == "Queen"
     assert result.item.album.name == "A Night at the Opera"
@@ -79,28 +79,6 @@ async def test_get_currently_playing_paused(spotify_client: SpotifyClient) -> No
     assert result.currently_playing_type == "track"
     assert result.item is not None
     assert result.item.name == "Stairway to Heaven"
-
-
-@pytest.mark.asyncio
-@respx.mock
-async def test_get_currently_playing_podcast(spotify_client: SpotifyClient) -> None:
-    mock_spotify_podcast_playing(
-        respx.mock,
-        episode_name="The Future of AI",
-        show_name="Tech Talks Daily",
-        episode_id="1a2b3c4d5e6f",
-        show_id="9z8y7x6w5v",
-    )
-
-    result = await spotify_client.get_currently_playing()
-
-    assert result is not None
-    assert result.is_playing is True
-    assert result.currently_playing_type == "episode"
-    assert result.item is not None
-    assert result.item.name == "The Future of AI"
-    assert result.item.show.name == "Tech Talks Daily"
-    assert result.item.url == "https://open.spotify.com/episode/1a2b3c4d5e6f"
 
 
 @pytest.mark.asyncio

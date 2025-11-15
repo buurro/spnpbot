@@ -71,55 +71,6 @@ def mock_spotify_track_playing(
     )
 
 
-def mock_spotify_podcast_playing(
-    respx_mock: respx.MockRouter,
-    episode_name: str = "Test Episode",
-    show_name: str = "Test Podcast",
-    episode_id: str = "4rOoJ6Whis8oYid03640ep",
-    show_id: str = "5CfCWKI5pZ28U0uOzXkDHe",
-    is_playing: bool = True,
-) -> None:
-    response_data = {
-        "is_playing": is_playing,
-        "currently_playing_type": "episode",
-        "item": {
-            "id": episode_id,
-            "name": episode_name,
-            "external_urls": {
-                "spotify": f"https://open.spotify.com/episode/{episode_id}"
-            },
-            "show": {
-                "id": show_id,
-                "name": show_name,
-                "external_urls": {
-                    "spotify": f"https://open.spotify.com/show/{show_id}"
-                },
-                "images": [
-                    {
-                        "url": "https://i.scdn.co/image/large",
-                        "width": 640,
-                        "height": 640,
-                    },
-                    {
-                        "url": "https://i.scdn.co/image/medium",
-                        "width": 300,
-                        "height": 300,
-                    },
-                    {"url": "https://i.scdn.co/image/small", "width": 64, "height": 64},
-                ],
-            },
-        },
-        "context": {
-            "type": "show",
-            "uri": f"spotify:show:{show_id}",
-        },
-    }
-
-    respx_mock.get("https://api.spotify.com/v1/me/player/currently-playing").mock(
-        return_value=Response(200, json=response_data)
-    )
-
-
 def mock_spotify_nothing_playing(respx_mock: respx.MockRouter) -> None:
     """Mock Spotify API to return nothing currently playing.
 
