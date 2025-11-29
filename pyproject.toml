@@ -19,7 +19,6 @@ dependencies = [
     "respx>=0.22.0",
     "rich>=13.9.4",
     "sentry-sdk[fastapi]>=2.42.1",
-    "spotipy>=2.25.1",
     "sqlalchemy[asyncio]>=2.0.0",
     "sqlmodel>=0.0.24",
 ]
