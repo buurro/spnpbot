@@ -35,13 +35,13 @@ uv sync
 
 ### 4. Generate security keys
 
-Generate a secret key for encryption:
+Generate `APP_SECRET` for encryption:
 
 ```bash
 uv run python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 ```
 
-Generate a webhook secret token:
+Generate `BOT_WEBHOOK_SECRET`:
 
 ```bash
 uv run python -c "import secrets; print(secrets.token_urlsafe(32))"
