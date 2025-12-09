@@ -1,9 +1,9 @@
 [project]
 name = "spnpbot"
-version = "0.1.1"
+version = "0.1.2"
 description = "A Telegram bot that shares your currently playing Spotify track via inline queries"
 readme = "README.md"
-requires-python = ">=3.13,<3.14"
+requires-python = ">=3.14,<3.15"
 dependencies = [
     "aiogram>=3.21.0",
     "aiosqlite>=0.20.0",
