@@ -52,6 +52,9 @@ async def run_async_migrations() -> None:
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)
 
+    # Dispose of the engine to clean up connection pool and allow process to exit
+    await engine.dispose()
+
 
 def do_run_migrations(connection):
     """Helper to run migrations synchronously within async context."""

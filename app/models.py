@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import BigInteger, DateTime, event
+from sqlalchemy import BigInteger, Column, DateTime, event
 from sqlmodel import Field, SQLModel
 
 from app.encryption import decrypt, encrypt
@@ -11,16 +11,19 @@ class User(SQLModel, table=True):
 
     spotify_access_token: str
     spotify_refresh_token: str
-    spotify_expires_at: datetime = Field(default=None, sa_type=DateTime(timezone=True))
+    spotify_expires_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), nullable=False)
+    )
 
     created_at: datetime | None = Field(
         default_factory=lambda: datetime.now(timezone.utc),
-        sa_type=DateTime(timezone=True),
+        sa_column=Column(DateTime(timezone=True)),
     )
     updated_at: datetime | None = Field(
         default_factory=lambda: datetime.now(timezone.utc),
-        sa_type=DateTime(timezone=True),
-        sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
+        sa_column=Column(
+            DateTime(timezone=True), onupdate=lambda: datetime.now(timezone.utc)
+        ),
     )
 
 

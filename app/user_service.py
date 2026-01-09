@@ -1,7 +1,6 @@
 from collections.abc import Awaitable, Callable
 from datetime import datetime, timedelta, timezone
-from functools import wraps
-from typing import ParamSpec, TypeVar
+from typing import TypeVar, overload
 
 from app.logger import get_logger
 from app.spotify.api import SpotifyClient
@@ -18,17 +17,32 @@ from .models import User
 
 logger = get_logger(__name__)
 
-P = ParamSpec("P")
 T = TypeVar("T")
+T1 = TypeVar("T1")
+T2 = TypeVar("T2")
 
 
 class UserNotLoggedInError(Exception):
     """Raised when a user is not logged in with Spotify."""
 
 
+# Overload for tuple return types (needed for ty type checker)
+@overload
 def with_token_refresh(
-    func: Callable[P, Awaitable[T]],
-) -> Callable[P, Awaitable[T]]:
+    func: Callable[..., Awaitable[tuple[T1, T2]]],
+) -> Callable[..., Awaitable[tuple[T1, T2]]]: ...
+
+
+# Generic fallback for other return types
+@overload
+def with_token_refresh(
+    func: Callable[..., Awaitable[T]],
+) -> Callable[..., Awaitable[T]]: ...
+
+
+def with_token_refresh(
+    func: Callable[..., Awaitable[T]],
+) -> Callable[..., Awaitable[T]]:
     """Decorator that automatically refreshes Spotify token on expiration and retries.
 
     The decorated function must be async and take a user_id parameter (int).
@@ -46,8 +60,7 @@ def with_token_refresh(
         The decorated function with automatic token refresh
     """
 
-    @wraps(func)
-    async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+    async def wrapper(*args: object, **kwargs: object) -> T:
         try:
             return await func(*args, **kwargs)
         except SpotifyTokenExpiredError:
