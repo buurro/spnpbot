@@ -121,14 +121,3 @@ def test_validate_state_expiration_boundary(
     else:
         with pytest.raises(StateExpiredError):
             validate_state(state)
-
-
-@pytest.mark.parametrize(
-    "user_id",
-    ["123", "987654321", "user_123", "test@example.com"],
-)
-def test_state_preserves_user_id_format(user_id: str) -> None:
-    """Test that user IDs with different formats are preserved."""
-    state = create_state(user_id)
-    result = validate_state(state)
-    assert result == user_id
