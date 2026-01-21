@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class ExternalUrl(BaseModel):
@@ -94,7 +94,7 @@ Item = Track | Episode
 
 
 class Context(BaseModel):
-    type: str = Field(alias="type")
+    type: str
     uri: str
 
 
