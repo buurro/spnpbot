@@ -79,7 +79,7 @@ def with_token_refresh(
 
             try:
                 await refresh_user_spotify_token(user_id)
-            except (SpotifyInvalidRefreshTokenError, SpotifyTokenRevokedError):
+            except SpotifyInvalidRefreshTokenError, SpotifyTokenRevokedError:
                 # Token cannot be refreshed, user needs to re-authenticate
                 # The exception is already logged in refresh_user_spotify_token
                 raise
@@ -110,7 +110,7 @@ async def refresh_user_spotify_token(telegram_id: int) -> None:
 
         try:
             response = await refresh_token(user.spotify_refresh_token)
-        except (SpotifyInvalidRefreshTokenError, SpotifyTokenRevokedError):
+        except SpotifyInvalidRefreshTokenError, SpotifyTokenRevokedError:
             logger.exception(
                 "Failed to refresh token for user %d. Clearing tokens.",
                 telegram_id,

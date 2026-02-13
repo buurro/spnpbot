@@ -59,7 +59,7 @@ async def spotify_auth_callback(
     except StateExpiredError as e:
         logger.info(e)
         return RedirectResponse(url=telegram_url)
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
         logger.exception("Invalid state")
         return RedirectResponse(url=telegram_url)
 

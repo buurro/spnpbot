@@ -181,7 +181,7 @@ async def queue_callback(callback: types.CallbackQuery) -> None:
     except UserNotLoggedInError:
         await callback.answer("Please log in with Spotify first!", show_alert=True)
 
-    except (SpotifyInvalidRefreshTokenError, SpotifyTokenRevokedError):
+    except SpotifyInvalidRefreshTokenError, SpotifyTokenRevokedError:
         logger.warning("User %d needs to re-authenticate with Spotify", user_id)
         await callback.answer(
             "Your Spotify session expired. Please log in again.", show_alert=True

@@ -161,7 +161,7 @@ class SpotifyClient(httpx.AsyncClient):
                     error_message = error_data["error"].get("message", error_message)
                 else:
                     error_message = str(error_data["error"])
-        except (ValueError, KeyError):
+        except ValueError, KeyError:
             # Failed to parse error response, use default message
             pass
 
