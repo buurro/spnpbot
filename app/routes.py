@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
+from urllib.parse import unquote
 
 from aiogram.types import Update
 from fastapi import APIRouter, Header, HTTPException
@@ -55,7 +56,8 @@ async def spotify_auth_callback(
         return RedirectResponse(url=telegram_url)
 
     try:
-        telegram_user_id = int(validate_state(state))
+        # URL-decode state to handle double-encoding from Telegram/aiogram
+        telegram_user_id = int(validate_state(unquote(state)))
     except StateExpiredError as e:
         logger.info(e)
         return RedirectResponse(url=telegram_url)
