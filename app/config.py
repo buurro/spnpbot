@@ -29,4 +29,4 @@ class Config(BaseSettings):
     )
 
 
-config = Config()  # type: ignore[call-arg]
+config = Config()  # ty: ignore[missing-argument]
