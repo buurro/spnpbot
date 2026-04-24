@@ -22,13 +22,15 @@ def build_track_result(track: Track) -> InlineQueryResultArticle:
         track.artist.name,
     )
 
+    thumbnail = track.thumbnail
+
     return InlineQueryResultArticle(
         id=str(uuid4()),
         title=f"{track.artist.name} - {track.name}",
         url=track.url,
-        thumbnail_url=track.thumbnail.url,
-        thumbnail_width=track.thumbnail.width,
-        thumbnail_height=track.thumbnail.height,
+        thumbnail_url=thumbnail.url if thumbnail else None,
+        thumbnail_width=thumbnail.width if thumbnail else None,
+        thumbnail_height=thumbnail.height if thumbnail else None,
         input_message_content=InputTextMessageContent(
             message_text=Text(*message_text).as_html(),
             parse_mode=ParseMode.HTML,
@@ -60,14 +62,16 @@ def build_context_result(context: Contextable) -> InlineQueryResultArticle:
         title = context.name
         message_content = Text("🎧 ", TextLink(context.name, url=context.url))
 
+    thumbnail = context.thumbnail
+
     return InlineQueryResultArticle(
         id=str(uuid4()),
         title=title,
         url=context.url,
         description=type(context).__name__,
-        thumbnail_url=context.thumbnail.url,
-        thumbnail_width=context.thumbnail.width,
-        thumbnail_height=context.thumbnail.height,
+        thumbnail_url=thumbnail.url if thumbnail else None,
+        thumbnail_width=thumbnail.width if thumbnail else None,
+        thumbnail_height=thumbnail.height if thumbnail else None,
         input_message_content=InputTextMessageContent(
             message_text=message_content.as_html(),
             parse_mode=ParseMode.HTML,

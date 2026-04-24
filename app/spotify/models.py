@@ -24,8 +24,8 @@ class Contextable(BaseModel):
         return self.external_urls.spotify
 
     @property
-    def thumbnail(self) -> Image:
-        return self.images[-1]
+    def thumbnail(self) -> Image | None:
+        return self.images[-1] if self.images else None
 
 
 class SimplifiedArtist(BaseModel):
@@ -52,8 +52,8 @@ class Episode(BaseModel):
         return self.external_urls.spotify
 
     @property
-    def thumbnail(self) -> Image:
-        return self.show.images[-1]
+    def thumbnail(self) -> Image | None:
+        return self.show.images[-1] if self.show.images else None
 
 
 class Album(Contextable):
@@ -78,8 +78,8 @@ class Track(BaseModel):
     album: Album
 
     @property
-    def thumbnail(self) -> Image:
-        return self.album.images[-1]
+    def thumbnail(self) -> Image | None:
+        return self.album.images[-1] if self.album.images else None
 
     @property
     def url(self) -> str:

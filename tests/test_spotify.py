@@ -174,6 +174,31 @@ async def test_get_artist(spotify_client: SpotifyClient) -> None:
 
 @pytest.mark.asyncio
 @respx.mock
+async def test_get_artist_without_images(spotify_client: SpotifyClient) -> None:
+    """Some artists have no images on Spotify (e.g. 1eSbxa5XOArsUPa8pyGbF2).
+
+    The thumbnail property must return None instead of raising IndexError.
+    """
+    artist_data = {
+        "id": "1eSbxa5XOArsUPa8pyGbF2",
+        "name": "Imageless Artist",
+        "external_urls": {
+            "spotify": "https://open.spotify.com/artist/1eSbxa5XOArsUPa8pyGbF2"
+        },
+        "images": [],
+    }
+    respx.mock.get("https://api.spotify.com/v1/artists/1eSbxa5XOArsUPa8pyGbF2").mock(
+        return_value=Response(200, json=artist_data)
+    )
+
+    result = await spotify_client.get_artist("1eSbxa5XOArsUPa8pyGbF2")
+
+    assert result is not None
+    assert result.thumbnail is None
+
+
+@pytest.mark.asyncio
+@respx.mock
 async def test_get_playlist_radio_without_image_dimensions(
     spotify_client: SpotifyClient,
 ) -> None:
@@ -205,6 +230,7 @@ async def test_get_playlist_radio_without_image_dimensions(
 
     assert result is not None
     assert result.name == "Song Radio"
+    assert result.thumbnail is not None
     assert result.thumbnail.url == "https://i.scdn.co/image/ab67706f00000002abc123"
     assert result.thumbnail.width is None
     assert result.thumbnail.height is None
