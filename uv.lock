@@ -1208,7 +1208,7 @@ requires-dist = [
     { name = "alembic", specifier = ">=1.16.5" },
     { name = "cachetools", specifier = ">=6.2.1" },
     { name = "cryptography", specifier = ">=45.0.7" },
-    { name = "fastapi", extras = ["standard"], specifier = ">=0.116.1" },
+    { name = "fastapi", extras = ["standard"], specifier = ">=0.136.1" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.2.12" },
     { name = "pydantic", specifier = ">=2.11.7" },
