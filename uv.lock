@@ -1231,7 +1231,7 @@ requires-dist = [
     { name = "cryptography", specifier = ">=45.0.7" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.116.1" },
     { name = "httpx", specifier = ">=0.28.1" },
-    { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.2.12" },
+    { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.3.4" },
     { name = "pydantic", specifier = ">=2.11.7" },
     { name = "pydantic-settings", specifier = ">=2.10.1" },
     { name = "pyyaml", specifier = ">=6.0" },
