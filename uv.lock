@@ -1227,7 +1227,7 @@ requires-dist = [
     { name = "aiogram", specifier = ">=3.21.0" },
     { name = "aiosqlite", specifier = ">=0.20.0" },
     { name = "alembic", specifier = ">=1.16.5" },
-    { name = "cachetools", specifier = ">=6.2.1" },
+    { name = "cachetools", specifier = ">=7.1.4" },
     { name = "cryptography", specifier = ">=45.0.7" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.116.1" },
     { name = "httpx", specifier = ">=0.28.1" },
