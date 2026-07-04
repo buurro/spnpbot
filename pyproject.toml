@@ -20,7 +20,7 @@ dependencies = [
     "rich>=13.9.4",
     "sentry-sdk[fastapi]>=2.60.0",
     "sqlalchemy[asyncio]>=2.0.51",
-    "sqlmodel>=0.0.24",
+    "sqlmodel>=0.0.39",
 ]
 
 [dependency-groups]
