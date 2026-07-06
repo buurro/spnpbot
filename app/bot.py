@@ -1,8 +1,8 @@
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums.parse_mode import ParseMode
-from aiogram.exceptions import TelegramBadRequest
-from aiogram.filters import Command
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
+from aiogram.filters import Command, ExceptionTypeFilter
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import (
     InlineKeyboardButton as Button,
@@ -45,6 +45,15 @@ dp = Dispatcher(storage=MemoryStorage())
 dp.message.middleware(RateLimitMiddleware())
 dp.inline_query.middleware(RateLimitMiddleware())
 dp.callback_query.middleware(RateLimitMiddleware())
+
+
+@dp.error(ExceptionTypeFilter(TelegramForbiddenError))
+async def forbidden_error(event: types.ErrorEvent) -> None:
+    # The user blocked the bot (or was deactivated); the update can't be
+    # answered, so drop it instead of failing the webhook and having
+    # Telegram redeliver it.
+    logger.warning("Dropping update %d: %s", event.update.update_id, event.exception)
+
 
 # Cache for inline query results with 3 second TTL
 _inline_query_cache: TTLCache[int, tuple[Track | None, Contextable | None]] = TTLCache(
