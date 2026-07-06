@@ -496,3 +496,38 @@ async def test_queue_callback_token_errors(
     mock_callback_query.answer.assert_awaited_once_with(
         "Your Spotify session expired. Please log in again.", show_alert=True
     )
+
+
+@pytest.mark.asyncio
+async def test_forbidden_error_is_dropped(mocker: MockerFixture) -> None:
+    """A TelegramForbiddenError (user blocked the bot) must not escape feed_update."""
+    from datetime import datetime, timezone
+
+    from aiogram import Bot
+    from aiogram.exceptions import TelegramForbiddenError
+    from aiogram.methods import SendMessage
+    from aiogram.types import Chat, Message, Update
+    from aiogram.types import User as TelegramUser
+
+    mocker.patch.object(
+        Bot,
+        "__call__",
+        side_effect=TelegramForbiddenError(
+            method=SendMessage(chat_id=1, text="x"),
+            message="Forbidden: bot was blocked by the user",
+        ),
+    )
+
+    update = Update(
+        update_id=1,
+        message=Message(
+            message_id=1,
+            date=datetime.now(timezone.utc),
+            chat=Chat(id=1, type="private"),
+            from_user=TelegramUser(id=1, is_bot=False, first_name="Test"),
+            text="/start",
+        ),
+    )
+
+    # The error handler swallows the exception instead of failing the webhook
+    await bot.dp.feed_update(bot=bot.bot, update=update)
