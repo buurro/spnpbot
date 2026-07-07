@@ -34,6 +34,10 @@ dev = [
     "ty>=0.0.1a24",
 ]
 
+
+[tool.fastapi]
+entrypoint = "app.main:app"
+
 [tool.ruff]
 exclude = [
     "migrations",
