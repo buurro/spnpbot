@@ -531,3 +531,61 @@ async def test_forbidden_error_is_dropped(mocker: MockerFixture) -> None:
 
     # The error handler swallows the exception instead of failing the webhook
     await bot.dp.feed_update(bot=bot.bot, update=update)
+
+
+def _start_update():
+    from datetime import datetime, timezone
+
+    from aiogram.types import Chat, Message, Update
+    from aiogram.types import User as TelegramUser
+
+    return Update(
+        update_id=1,
+        message=Message(
+            message_id=1,
+            date=datetime.now(timezone.utc),
+            chat=Chat(id=1, type="private"),
+            from_user=TelegramUser(id=1, is_bot=False, first_name="Test"),
+            text="/start",
+        ),
+    )
+
+
+@pytest.mark.asyncio
+async def test_chat_not_found_error_is_dropped(mocker: MockerFixture) -> None:
+    """A TelegramBadRequest 'chat not found' must not escape feed_update."""
+    from aiogram import Bot
+    from aiogram.exceptions import TelegramBadRequest
+    from aiogram.methods import SendMessage
+
+    mocker.patch.object(
+        Bot,
+        "__call__",
+        side_effect=TelegramBadRequest(
+            method=SendMessage(chat_id=1, text="x"),
+            message="Bad Request: chat not found",
+        ),
+    )
+
+    # The error handler swallows the exception instead of failing the webhook
+    await bot.dp.feed_update(bot=bot.bot, update=_start_update())
+
+
+@pytest.mark.asyncio
+async def test_other_bad_request_still_propagates(mocker: MockerFixture) -> None:
+    """TelegramBadRequest errors other than 'chat not found' must still surface."""
+    from aiogram import Bot
+    from aiogram.exceptions import TelegramBadRequest
+    from aiogram.methods import SendMessage
+
+    mocker.patch.object(
+        Bot,
+        "__call__",
+        side_effect=TelegramBadRequest(
+            method=SendMessage(chat_id=1, text="x"),
+            message="Bad Request: can't parse entities",
+        ),
+    )
+
+    with pytest.raises(TelegramBadRequest, match="can't parse entities"):
+        await bot.dp.feed_update(bot=bot.bot, update=_start_update())
