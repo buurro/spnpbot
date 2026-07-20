@@ -2,7 +2,7 @@ from aiogram import Bot, Dispatcher, F, types
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums.parse_mode import ParseMode
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
-from aiogram.filters import Command, ExceptionTypeFilter
+from aiogram.filters import Command, ExceptionMessageFilter, ExceptionTypeFilter
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import (
     InlineKeyboardButton as Button,
@@ -51,6 +51,17 @@ dp.callback_query.middleware(RateLimitMiddleware())
 async def forbidden_error(event: types.ErrorEvent) -> None:
     # The user blocked the bot (or was deactivated); the update can't be
     # answered, so drop it instead of failing the webhook and having
+    # Telegram redeliver it.
+    logger.warning("Dropping update %d: %s", event.update.update_id, event.exception)
+
+
+@dp.error(
+    ExceptionTypeFilter(TelegramBadRequest),
+    ExceptionMessageFilter(r".*\bchat not found"),
+)
+async def chat_not_found_error(event: types.ErrorEvent) -> None:
+    # The chat was deleted (or the account deactivated) before the bot could
+    # reply; drop the update instead of failing the webhook and having
     # Telegram redeliver it.
     logger.warning("Dropping update %d: %s", event.update.update_id, event.exception)
 
