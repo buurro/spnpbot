@@ -93,7 +93,9 @@ def with_token_refresh(
 async def get_user_spotify_client(telegram_id: int) -> SpotifyClient | None:
     async with get_session() as session:
         user = await session.get(User, telegram_id)
-        if not user:
+        # Tokens are cleared (set to "") when a refresh fails; treat that as
+        # logged out instead of retrying a refresh that can never succeed.
+        if not user or not user.spotify_refresh_token:
             return None
         return SpotifyClient(
             access_token=user.spotify_access_token,
@@ -109,9 +111,15 @@ async def refresh_user_spotify_token(telegram_id: int) -> None:
             return
 
         try:
+            if not user.spotify_refresh_token:
+                # Already cleared by a previous failed refresh; don't ask
+                # Spotify to refresh an empty token.
+                raise SpotifyInvalidRefreshTokenError()
             response = await refresh_token(user.spotify_refresh_token)
         except SpotifyInvalidRefreshTokenError, SpotifyTokenRevokedError:
-            logger.exception(
+            # Expected when the user revoked access or the token was already
+            # cleared; the caller prompts them to log in again.
+            logger.warning(
                 "Failed to refresh token for user %d. Clearing tokens.",
                 telegram_id,
             )
