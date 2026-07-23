@@ -5,10 +5,10 @@ description = "A Telegram bot that shares your currently playing Spotify track v
 readme = "README.md"
 requires-python = ">=3.14,<3.15"
 dependencies = [
-    "aiogram>=3.21.0",
+    "aiogram>=3.30.0",
     "aiosqlite>=0.20.0",
     "alembic>=1.16.5",
-    "cachetools>=6.2.1",
+    "cachetools>=7.1.5",
     "cryptography>=45.0.7",
     "fastapi[standard]>=0.139.2",
     "httpx>=0.28.1",
@@ -18,20 +18,20 @@ dependencies = [
     "pyyaml>=6.0",
     "respx>=0.22.0",
     "rich>=13.9.4",
-    "sentry-sdk[fastapi]>=2.64.0",
+    "sentry-sdk[fastapi]>=2.66.1",
     "sqlalchemy[asyncio]>=2.0.51",
     "sqlmodel>=0.0.39",
 ]
 
 [dependency-groups]
 dev = [
-    "fastapi-cli>=0.0.8",
+    "fastapi-cli>=0.0.32",
     "pytest>=8.4.1",
     "pytest-asyncio>=1.1.0",
     "pytest-cov>=7.0.0",
     "pytest-mock>=3.14.1",
-    "ruff>=0.12.7",
-    "ty>=0.0.1a24",
+    "ruff>=0.15.22",
+    "ty>=0.0.62",
 ]
 
 
