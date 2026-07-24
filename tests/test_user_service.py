@@ -39,6 +39,25 @@ async def test_get_user_spotify_client_not_exists(test_db: AsyncEngine) -> None:
 
 
 @pytest.mark.asyncio
+async def test_get_user_spotify_client_cleared_tokens(
+    test_user: User, test_db: AsyncEngine, telegram_user_id: int
+) -> None:
+    """Test that a user with cleared tokens is treated as logged out."""
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    async with AsyncSession(test_db, expire_on_commit=False) as session:
+        user = await session.get(User, telegram_user_id)
+        assert user is not None
+        user.spotify_access_token = ""
+        user.spotify_refresh_token = ""
+        session.add(user)
+        await session.commit()
+
+    client = await get_user_spotify_client(telegram_user_id)
+    assert client is None
+
+
+@pytest.mark.asyncio
 async def test_refresh_user_spotify_token(
     test_user: User, test_db: AsyncEngine, telegram_user_id: int, mocker: MockerFixture
 ) -> None:
@@ -99,6 +118,30 @@ async def test_refresh_user_spotify_token_invalid_token(
         assert user is not None
         assert user.spotify_access_token == ""
         assert user.spotify_refresh_token == ""
+
+
+@pytest.mark.asyncio
+async def test_refresh_user_spotify_token_empty_token(
+    test_user: User, test_db: AsyncEngine, telegram_user_id: int, mocker: MockerFixture
+) -> None:
+    """Test that an empty refresh token fails fast without calling Spotify."""
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from app.spotify.errors import SpotifyInvalidRefreshTokenError
+
+    async with AsyncSession(test_db, expire_on_commit=False) as session:
+        user = await session.get(User, telegram_user_id)
+        assert user is not None
+        user.spotify_refresh_token = ""
+        session.add(user)
+        await session.commit()
+
+    mock_refresh = mocker.patch("app.user_service.refresh_token")
+
+    with pytest.raises(SpotifyInvalidRefreshTokenError):
+        await refresh_user_spotify_token(telegram_user_id)
+
+    mock_refresh.assert_not_called()
 
 
 @pytest.mark.asyncio
