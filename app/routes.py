@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 from urllib.parse import unquote
 
@@ -75,7 +75,7 @@ async def spotify_auth_callback(
         telegram_id=telegram_user_id,
         spotify_access_token=token_response.access_token,
         spotify_refresh_token=token_response.refresh_token,
-        spotify_expires_at=datetime.now(timezone.utc)
+        spotify_expires_at=datetime.now(UTC)
         + timedelta(seconds=token_response.expires_in),
     )
 

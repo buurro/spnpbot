@@ -3,8 +3,8 @@
 import os
 import sys
 import warnings
-from datetime import datetime, timedelta, timezone
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
+from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock
 
 from sqlalchemy.ext.asyncio import AsyncEngine
@@ -183,7 +183,7 @@ async def test_user(test_db: AsyncEngine, telegram_user_id: int) -> User:
             telegram_id=telegram_user_id,
             spotify_access_token="test_access_token",
             spotify_refresh_token="test_refresh_token",
-            spotify_expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            spotify_expires_at=datetime.now(UTC) + timedelta(hours=1),
         )
         session.add(user)
         await session.commit()

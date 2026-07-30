@@ -8,8 +8,8 @@ from aiogram.types import CallbackQuery, InlineQuery, Message, User
 
 from app.rate_limit import (
     RateLimitConfig,
-    RateLimitMiddleware,
     RateLimiter,
+    RateLimitMiddleware,
 )
 
 

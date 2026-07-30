@@ -4,7 +4,7 @@ These tests verify end-to-end flows with real database interactions
 and mocked external services (Telegram API, Spotify API).
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock
 
 import pytest
@@ -18,7 +18,6 @@ from app.db import get_session
 from app.encryption import create_state
 from app.models import User
 from app.spotify.models import TokenResponse
-
 
 # =============================================================================
 # OAuth Flow Integration Tests
@@ -136,7 +135,7 @@ class TestOAuthFlowIntegration:
                 telegram_id=telegram_user_id,
                 spotify_access_token="old_access_token",
                 spotify_refresh_token="old_refresh_token",
-                spotify_expires_at=datetime.now(timezone.utc) - timedelta(hours=1),
+                spotify_expires_at=datetime.now(UTC) - timedelta(hours=1),
             )
             session.add(existing_user)
             await session.commit()
@@ -178,7 +177,7 @@ class TestOAuthFlowIntegration:
             assert user is not None
             assert user.spotify_access_token == "new_access_token"
             assert user.spotify_refresh_token == "new_refresh_token"
-            assert user.spotify_expires_at > datetime.now(timezone.utc)
+            assert user.spotify_expires_at > datetime.now(UTC)
 
         # Cleanup
         async with get_session() as session:
@@ -218,7 +217,7 @@ class TestInlineQueryFlowIntegration:
                 telegram_id=telegram_user_id,
                 spotify_access_token="valid_access_token",
                 spotify_refresh_token="valid_refresh_token",
-                spotify_expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+                spotify_expires_at=datetime.now(UTC) + timedelta(hours=1),
             )
             session.add(user)
             await session.commit()
@@ -334,7 +333,7 @@ class TestInlineQueryFlowIntegration:
                 telegram_id=telegram_user_id,
                 spotify_access_token="valid_access_token",
                 spotify_refresh_token="valid_refresh_token",
-                spotify_expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+                spotify_expires_at=datetime.now(UTC) + timedelta(hours=1),
             )
             session.add(user)
             await session.commit()
@@ -486,7 +485,7 @@ class TestQueueFlowIntegration:
                 telegram_id=telegram_user_id,
                 spotify_access_token="queue_test_token",
                 spotify_refresh_token="queue_test_refresh",
-                spotify_expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+                spotify_expires_at=datetime.now(UTC) + timedelta(hours=1),
             )
             session.add(user)
             await session.commit()
@@ -541,7 +540,7 @@ class TestQueueFlowIntegration:
                 telegram_id=telegram_user_id,
                 spotify_access_token="no_device_token",
                 spotify_refresh_token="no_device_refresh",
-                spotify_expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+                spotify_expires_at=datetime.now(UTC) + timedelta(hours=1),
             )
             session.add(user)
             await session.commit()
@@ -638,7 +637,7 @@ class TestLogoutFlowIntegration:
                 telegram_id=telegram_user_id,
                 spotify_access_token="logout_test_token",
                 spotify_refresh_token="logout_test_refresh",
-                spotify_expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+                spotify_expires_at=datetime.now(UTC) + timedelta(hours=1),
             )
             session.add(user)
             await session.commit()

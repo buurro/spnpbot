@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from datetime import UTC
 
 import pytest
 from pytest_mock import MockerFixture, MockType
@@ -501,7 +502,7 @@ async def test_queue_callback_token_errors(
 @pytest.mark.asyncio
 async def test_forbidden_error_is_dropped(mocker: MockerFixture) -> None:
     """A TelegramForbiddenError (user blocked the bot) must not escape feed_update."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from aiogram import Bot
     from aiogram.exceptions import TelegramForbiddenError
@@ -522,7 +523,7 @@ async def test_forbidden_error_is_dropped(mocker: MockerFixture) -> None:
         update_id=1,
         message=Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=Chat(id=1, type="private"),
             from_user=TelegramUser(id=1, is_bot=False, first_name="Test"),
             text="/start",
@@ -534,7 +535,7 @@ async def test_forbidden_error_is_dropped(mocker: MockerFixture) -> None:
 
 
 def _start_update():
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from aiogram.types import Chat, Message, Update
     from aiogram.types import User as TelegramUser
@@ -543,7 +544,7 @@ def _start_update():
         update_id=1,
         message=Message(
             message_id=1,
-            date=datetime.now(timezone.utc),
+            date=datetime.now(UTC),
             chat=Chat(id=1, type="private"),
             from_user=TelegramUser(id=1, is_bot=False, first_name="Test"),
             text="/start",

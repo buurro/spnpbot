@@ -1,6 +1,6 @@
 from collections.abc import Awaitable, Callable
-from datetime import datetime, timedelta, timezone
-from typing import TypeVar, overload
+from datetime import UTC, datetime, timedelta
+from typing import overload
 
 from app.logger import get_logger
 from app.spotify.api import SpotifyClient
@@ -17,10 +17,6 @@ from .models import User
 
 logger = get_logger(__name__)
 
-T = TypeVar("T")
-T1 = TypeVar("T1")
-T2 = TypeVar("T2")
-
 
 class UserNotLoggedInError(Exception):
     """Raised when a user is not logged in with Spotify."""
@@ -28,19 +24,19 @@ class UserNotLoggedInError(Exception):
 
 # Overload for tuple return types (needed for ty type checker)
 @overload
-def with_token_refresh(
+def with_token_refresh[T1, T2](
     func: Callable[..., Awaitable[tuple[T1, T2]]],
 ) -> Callable[..., Awaitable[tuple[T1, T2]]]: ...
 
 
 # Generic fallback for other return types
 @overload
-def with_token_refresh(
+def with_token_refresh[T](
     func: Callable[..., Awaitable[T]],
 ) -> Callable[..., Awaitable[T]]: ...
 
 
-def with_token_refresh(
+def with_token_refresh[T](
     func: Callable[..., Awaitable[T]],
 ) -> Callable[..., Awaitable[T]]:
     """Decorator that automatically refreshes Spotify token on expiration and retries.
@@ -77,12 +73,10 @@ def with_token_refresh(
                 )
             logger.info("Spotify token expired for user %d, refreshing", user_id)
 
-            try:
-                await refresh_user_spotify_token(user_id)
-            except SpotifyInvalidRefreshTokenError, SpotifyTokenRevokedError:
-                # Token cannot be refreshed, user needs to re-authenticate
-                # The exception is already logged in refresh_user_spotify_token
-                raise
+            # SpotifyInvalidRefreshTokenError / SpotifyTokenRevokedError propagate
+            # to the caller: the token cannot be refreshed and the user needs to
+            # re-authenticate (already logged in refresh_user_spotify_token)
+            await refresh_user_spotify_token(user_id)
 
             # Retry once after refresh
             return await func(*args, **kwargs)
@@ -126,13 +120,13 @@ async def refresh_user_spotify_token(telegram_id: int) -> None:
             # Clear the user's Spotify tokens as they need to re-authenticate
             user.spotify_access_token = ""
             user.spotify_refresh_token = ""
-            user.spotify_expires_at = datetime.now(timezone.utc)
+            user.spotify_expires_at = datetime.now(UTC)
             session.add(user)
             await session.commit()
             raise
 
         user.spotify_access_token = response.access_token
-        user.spotify_expires_at = datetime.now(timezone.utc) + timedelta(
+        user.spotify_expires_at = datetime.now(UTC) + timedelta(
             seconds=response.expires_in
         )
         session.add(user)

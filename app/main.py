@@ -25,7 +25,7 @@ else:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     # Configure uvicorn loggers to use our RichHandler format
     configure_uvicorn_loggers()
 

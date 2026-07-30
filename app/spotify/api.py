@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
@@ -46,7 +46,7 @@ class SpotifyClient(httpx.AsyncClient):
 
     def _check_token_expiration(self) -> None:
         """Check if the access token has expired and raise if so."""
-        if self._expires_at <= datetime.now(timezone.utc):
+        if self._expires_at <= datetime.now(UTC):
             raise SpotifyTokenExpiredError()
 
     async def _common_get[T: BaseModel](

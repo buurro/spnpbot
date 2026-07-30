@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import BigInteger, Column, DateTime, event
 from sqlmodel import Field, SQLModel
@@ -16,14 +16,12 @@ class User(SQLModel, table=True):
     )
 
     created_at: datetime | None = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         sa_column=Column(DateTime(timezone=True)),
     )
     updated_at: datetime | None = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
-        sa_column=Column(
-            DateTime(timezone=True), onupdate=lambda: datetime.now(timezone.utc)
-        ),
+        default_factory=lambda: datetime.now(UTC),
+        sa_column=Column(DateTime(timezone=True), onupdate=lambda: datetime.now(UTC)),
     )
 
 
@@ -67,12 +65,10 @@ def decrypt_tokens_and_fix_timezone(target: User, context: object) -> None:
 
     # Ensure all datetime fields are treated as UTC (SQLite doesn't preserve timezone)
     if target.spotify_expires_at and target.spotify_expires_at.tzinfo is None:
-        target.spotify_expires_at = target.spotify_expires_at.replace(
-            tzinfo=timezone.utc
-        )
+        target.spotify_expires_at = target.spotify_expires_at.replace(tzinfo=UTC)
 
     if target.created_at and target.created_at.tzinfo is None:
-        target.created_at = target.created_at.replace(tzinfo=timezone.utc)
+        target.created_at = target.created_at.replace(tzinfo=UTC)
 
     if target.updated_at and target.updated_at.tzinfo is None:
-        target.updated_at = target.updated_at.replace(tzinfo=timezone.utc)
+        target.updated_at = target.updated_at.replace(tzinfo=UTC)
