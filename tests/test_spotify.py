@@ -1,6 +1,6 @@
 """Tests for Spotify functionality."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 import respx
@@ -32,7 +32,7 @@ def spotify_client() -> SpotifyClient:
     return SpotifyClient(
         access_token="test_access_token",
         refresh_token="test_refresh_token",
-        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+        expires_at=datetime.now(UTC) + timedelta(hours=1),
     )
 
 
@@ -293,7 +293,7 @@ async def test_get_album_token_expired_before_request() -> None:
     expired_client = SpotifyClient(
         access_token="test_token",
         refresh_token="test_refresh",
-        expires_at=datetime.now(timezone.utc) - timedelta(hours=1),
+        expires_at=datetime.now(UTC) - timedelta(hours=1),
     )
 
     with pytest.raises(SpotifyTokenExpiredError):
@@ -461,7 +461,7 @@ async def test_add_to_queue_token_expired_before_request() -> None:
     expired_client = SpotifyClient(
         access_token="test_token",
         refresh_token="test_refresh",
-        expires_at=datetime.now(timezone.utc) - timedelta(hours=1),
+        expires_at=datetime.now(UTC) - timedelta(hours=1),
     )
 
     with pytest.raises(SpotifyTokenExpiredError):

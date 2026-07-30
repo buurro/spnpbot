@@ -1,5 +1,6 @@
 """Tests for database error handling."""
 
+from datetime import UTC
 from typing import Any, Never
 from unittest.mock import AsyncMock, patch
 
@@ -24,7 +25,7 @@ async def test_get_session_retry_on_operational_error() -> None:
 
     call_count = 0
 
-    def mock_session_init(*args: Any, **kwargs: Any) -> AsyncSession:  # noqa: ANN401
+    def mock_session_init(*args: Any, **kwargs: Any) -> AsyncSession:
         nonlocal call_count
         call_count += 1
         if call_count == 1:
@@ -41,13 +42,15 @@ async def test_get_session_retry_on_operational_error() -> None:
 async def test_get_session_exhausts_retries() -> None:
     """Test get_session raises error after exhausting retries."""
 
-    def always_fail(*args: Any, **kwargs: Any) -> Never:  # noqa: ANN401
+    def always_fail(*args: Any, **kwargs: Any) -> Never:
         raise OperationalError("Database error", None, Exception("DB error"))
 
-    with patch("app.db.AsyncSession", side_effect=always_fail):
-        with pytest.raises(OperationalError, match="Database error"):
-            async with get_session(max_retries=2, retry_delay=0.01):
-                pass
+    with (
+        patch("app.db.AsyncSession", side_effect=always_fail),
+        pytest.raises(OperationalError, match="Database error"),
+    ):
+        async with get_session(max_retries=2, retry_delay=0.01):
+            pass
 
 
 @pytest.mark.asyncio
@@ -57,22 +60,24 @@ async def test_get_session_exponential_backoff() -> None:
 
     call_count = 0
 
-    def mock_session_init(*args: Any, **kwargs: Any) -> AsyncSession:  # noqa: ANN401
+    def mock_session_init(*args: Any, **kwargs: Any) -> AsyncSession:
         nonlocal call_count
         call_count += 1
         if call_count <= 2:
             raise OperationalError("Database locked", None, Exception("DB locked"))
         return AsyncSession(*args, **kwargs)
 
-    with patch("app.db.AsyncSession", side_effect=mock_session_init):
-        with patch("app.db.asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-            async with get_session(retry_delay=0.1) as session:
-                assert session is not None
-                assert call_count == 3
-                # Check exponential backoff: 0.1, 0.2
-                assert mock_sleep.call_count == 2
-                assert mock_sleep.call_args_list[0][0][0] == 0.1
-                assert mock_sleep.call_args_list[1][0][0] == 0.2
+    with (
+        patch("app.db.AsyncSession", side_effect=mock_session_init),
+        patch("app.db.asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
+    ):
+        async with get_session(retry_delay=0.1) as session:
+            assert session is not None
+            assert call_count == 3
+            # Check exponential backoff: 0.1, 0.2
+            assert mock_sleep.call_count == 2
+            assert mock_sleep.call_args_list[0][0][0] == 0.1
+            assert mock_sleep.call_args_list[1][0][0] == 0.2
 
 
 def test_get_async_database_url_sqlite() -> None:
@@ -105,7 +110,7 @@ def test_get_async_database_url_other() -> None:
 @pytest.mark.asyncio
 async def test_large_telegram_id(test_db: AsyncEngine) -> None:
     """Test that large Telegram IDs (exceeding 32-bit int) are handled correctly."""
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
 
     from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -121,7 +126,7 @@ async def test_large_telegram_id(test_db: AsyncEngine) -> None:
             telegram_id=large_telegram_id,
             spotify_access_token="test_access_token",
             spotify_refresh_token="test_refresh_token",
-            spotify_expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+            spotify_expires_at=datetime.now(UTC) + timedelta(hours=1),
         )
         session.add(user)
         await session.commit()

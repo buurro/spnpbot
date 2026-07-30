@@ -1,6 +1,6 @@
 """Tests for utility functions."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from pytest_mock import MockerFixture
@@ -82,7 +82,7 @@ async def test_refresh_user_spotify_token(
         user = await session.get(User, telegram_user_id)
         assert user is not None
         assert user.spotify_access_token == "new_access_token"
-        assert user.spotify_expires_at > datetime.now(timezone.utc)
+        assert user.spotify_expires_at > datetime.now(UTC)
 
 
 @pytest.mark.asyncio

@@ -31,7 +31,7 @@ async def test_lifespan_startup_sets_webhook(
     """Test that lifespan sets webhook on startup."""
     mocker.patch("app.main.config.ENVIRONMENT", "production")
 
-    from app.main import lifespan, app
+    from app.main import app, lifespan
 
     async with lifespan(app):
         pass
@@ -50,7 +50,7 @@ async def test_lifespan_startup_sets_bot_commands(
     """Test that lifespan sets bot commands on startup."""
     mocker.patch("app.main.config.ENVIRONMENT", "production")
 
-    from app.main import lifespan, app
+    from app.main import app, lifespan
 
     async with lifespan(app):
         pass
@@ -74,7 +74,7 @@ async def test_lifespan_startup_configures_uvicorn_loggers(
     """Test that lifespan configures uvicorn loggers on startup."""
     mocker.patch("app.main.config.ENVIRONMENT", "production")
 
-    from app.main import lifespan, app
+    from app.main import app, lifespan
 
     async with lifespan(app):
         pass
@@ -89,7 +89,7 @@ async def test_lifespan_shutdown_cleans_up_in_development(
     """Test that lifespan cleans up webhook and commands in development mode."""
     mocker.patch("app.main.config.ENVIRONMENT", "development")
 
-    from app.main import lifespan, app
+    from app.main import app, lifespan
 
     async with lifespan(app):
         pass
@@ -106,7 +106,7 @@ async def test_lifespan_shutdown_skips_cleanup_in_production(
     """Test that lifespan does NOT clean up webhook and commands in production."""
     mocker.patch("app.main.config.ENVIRONMENT", "production")
 
-    from app.main import lifespan, app
+    from app.main import app, lifespan
 
     async with lifespan(app):
         pass
@@ -123,7 +123,7 @@ async def test_lifespan_cleanup_on_exception(
     """Test that lifespan still cleans up if an exception occurs during app runtime."""
     mocker.patch("app.main.config.ENVIRONMENT", "development")
 
-    from app.main import lifespan, app
+    from app.main import app, lifespan
 
     with pytest.raises(RuntimeError, match="Test error"):
         async with lifespan(app):

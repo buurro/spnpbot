@@ -56,7 +56,7 @@ engine: AsyncEngine = create_async_engine(
 @asynccontextmanager
 async def get_session(
     max_retries: int = 3, retry_delay: float = 0.1
-) -> AsyncGenerator[AsyncSession, None]:
+) -> AsyncGenerator[AsyncSession]:
     """Get an async database session with automatic retry logic for connection errors.
 
     Retries session creation if it fails due to OperationalError.

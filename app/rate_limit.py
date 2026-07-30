@@ -6,7 +6,8 @@ legitimate usage patterns. Different rate limits are applied based on update typ
 
 import time
 from collections import defaultdict
-from typing import Any, Awaitable, Callable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from aiogram import BaseMiddleware
 from aiogram.types import (
@@ -120,7 +121,7 @@ class RateLimitMiddleware(BaseMiddleware):
         handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
         event: TelegramObject,
         data: dict[str, Any],
-    ) -> Any:  # noqa: ANN401 - Middleware must match aiogram's BaseMiddleware signature
+    ) -> Any:
         """Process event with rate limiting."""
         # Extract user and determine request type
         match event:
