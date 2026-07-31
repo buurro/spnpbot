@@ -85,7 +85,12 @@ def configure_uvicorn_loggers() -> None:
                 show_path=False,
                 markup=False,
             )
-            handler.setFormatter(logging.Formatter("%(name)s - %(message)s"))
+            handler.setFormatter(
+                logging.Formatter(
+                    "%(asctime)s.%(msecs)03d %(name)s - %(message)s",
+                    datefmt="%H:%M:%S",
+                )
+            )
         else:
             handler = logging.StreamHandler(sys.stdout)
             handler.setFormatter(logging.Formatter(PLAIN_LOG_FORMAT))
