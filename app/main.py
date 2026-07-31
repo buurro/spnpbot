@@ -1,3 +1,4 @@
+import time
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -5,12 +6,20 @@ import sentry_sdk
 from aiogram.types import BotCommand
 from fastapi import FastAPI
 
+from . import STARTUP_T0
 from .bot import bot
 from .config import config
 from .logger import configure_uvicorn_loggers, get_logger
 from .routes import router
 
 logger = get_logger(__name__)
+
+
+def _since_start() -> float:
+    return (time.monotonic() - STARTUP_T0) * 1000
+
+
+logger.info("Imports completed in %.0f ms", _since_start())
 
 if config.SENTRY_DSN:
     sentry_sdk.init(
@@ -29,11 +38,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     # Configure uvicorn loggers to use our RichHandler format
     configure_uvicorn_loggers()
 
+    t = time.monotonic()
     await bot.set_webhook(
         f"{config.APP_URL}{config.BOT_WEBHOOK_PATH}",
         allowed_updates=["message", "inline_query", "callback_query"],
         secret_token=config.BOT_WEBHOOK_SECRET,
     )
+    logger.info("Webhook set in %.0f ms", (time.monotonic() - t) * 1000)
+    t = time.monotonic()
     await bot.set_my_commands(
         [
             BotCommand(command="start", description="Start the bot"),
@@ -41,7 +53,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
             BotCommand(command="logout", description="Disconnect your Spotify account"),
         ]
     )
-    logger.info("Webhook set")
+    logger.info(
+        "Commands set in %.0f ms; startup ready %.0f ms after first import",
+        (time.monotonic() - t) * 1000,
+        _since_start(),
+    )
     try:
         yield
     finally:

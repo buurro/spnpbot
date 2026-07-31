@@ -3,9 +3,11 @@ disable_existing_loggers: false
 
 formatters:
   default:
-    format: '%(name)s - %(message)s'
+    format: '%(asctime)s.%(msecs)03d %(name)s - %(message)s'
+    datefmt: '%H:%M:%S'
   access:
-    format: '%(name)s - %(message)s'
+    format: '%(asctime)s.%(msecs)03d %(name)s - %(message)s'
+    datefmt: '%H:%M:%S'
 
 handlers:
   default:
