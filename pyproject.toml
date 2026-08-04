@@ -8,9 +8,9 @@ dependencies = [
     "aiogram>=3.30.0",
     "aiosqlite>=0.20.0",
     "alembic>=1.16.5",
-    "cachetools>=7.1.6",
-    "cryptography>=45.0.7",
-    "fastapi[standard]>=0.140.13",
+    "cachetools>=7.1.7",
+    "cryptography>=50.0.0",
+    "fastapi[standard]>=0.141.1",
     "httpx>=0.28.1",
     "psycopg[binary,pool]>=3.3.4",
     "pydantic>=2.11.7",
@@ -30,8 +30,8 @@ dev = [
     "pytest-asyncio>=1.1.0",
     "pytest-cov>=7.0.0",
     "pytest-mock>=3.14.1",
-    "ruff>=0.16.0",
-    "ty>=0.0.64",
+    "ruff>=0.16.1",
+    "ty>=0.0.65",
 ]
 
 
