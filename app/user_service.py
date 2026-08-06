@@ -8,7 +8,6 @@ from app.spotify.auth import refresh_token
 from app.spotify.errors import (
     SpotifyInvalidRefreshTokenError,
     SpotifyTokenExpiredError,
-    SpotifyTokenRevokedError,
 )
 from app.spotify.models import Contextable, Track
 
@@ -45,9 +44,9 @@ def with_token_refresh[T](
     If a SpotifyTokenExpiredError is raised, the token will be refreshed
     and the function will be retried once.
 
-    If the refresh token is invalid or revoked (SpotifyInvalidRefreshTokenError
-    or SpotifyTokenRevokedError), the user's tokens are cleared and the exception
-    is propagated to notify the caller that re-authentication is needed.
+    If the refresh token is rejected (SpotifyInvalidRefreshTokenError), the
+    user's tokens are cleared and the exception is propagated to notify the
+    caller that re-authentication is needed.
 
     Args:
         func: The async function to decorate
@@ -73,9 +72,9 @@ def with_token_refresh[T](
                 )
             logger.info("Spotify token expired for user %d, refreshing", user_id)
 
-            # SpotifyInvalidRefreshTokenError / SpotifyTokenRevokedError propagate
-            # to the caller: the token cannot be refreshed and the user needs to
-            # re-authenticate (already logged in refresh_user_spotify_token)
+            # SpotifyInvalidRefreshTokenError propagates to the caller: the
+            # token cannot be refreshed and the user needs to re-authenticate
+            # (already logged in refresh_user_spotify_token)
             await refresh_user_spotify_token(user_id)
 
             # Retry once after refresh
@@ -110,9 +109,9 @@ async def refresh_user_spotify_token(telegram_id: int) -> None:
                 # Spotify to refresh an empty token.
                 raise SpotifyInvalidRefreshTokenError()
             response = await refresh_token(user.spotify_refresh_token)
-        except SpotifyInvalidRefreshTokenError, SpotifyTokenRevokedError:
-            # Expected when the user revoked access or the token was already
-            # cleared; the caller prompts them to log in again.
+        except SpotifyInvalidRefreshTokenError:
+            # Expected when the user revoked access, the token expired, or it
+            # was already cleared; the caller prompts them to log in again.
             logger.warning(
                 "Failed to refresh token for user %d. Clearing tokens.",
                 telegram_id,

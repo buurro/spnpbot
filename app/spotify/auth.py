@@ -13,7 +13,6 @@ from .errors import (
     SpotifyAuthError,
     SpotifyInvalidRefreshTokenError,
     SpotifyTokenError,
-    SpotifyTokenRevokedError,
 )
 
 logger = get_logger(__name__)
@@ -91,20 +90,23 @@ async def refresh_token(refresh_token: str) -> RefreshTokenResponse:
         )
 
         if r.status_code == 400:
-            logger.error("Failed to refresh token: %s", r.text)
             try:
                 error_response = r.json()
             except JSONDecodeError:
+                logger.error("Failed to refresh token: %s", r.text)
                 raise SpotifyTokenError(r.text) from None
-            match error_response.get("error_description"):
-                case "Invalid refresh token":
-                    raise SpotifyInvalidRefreshTokenError()
-                case "refresh_token must be supplied":
-                    raise SpotifyInvalidRefreshTokenError()
-                case "Refresh token revoked":
-                    raise SpotifyTokenRevokedError()
-                case _:
-                    raise SpotifyTokenError(r.text)
+
+            error = error_response.get("error")
+            description = error_response.get("error_description")
+            logger.error("Failed to refresh token: %s (%s)", error, description)
+
+            # Match on `error`, not `error_description`: Spotify changes the
+            # free-text wording without notice ("Refresh token expired" showed
+            # up unannounced and escaped every handler). Any invalid_grant on a
+            # refresh means the same thing: the token is dead, re-auth needed.
+            if error == "invalid_grant":
+                raise SpotifyInvalidRefreshTokenError(r.text)
+            raise SpotifyTokenError(r.text)
 
         if r.status_code != 200:
             logger.error("Failed to refresh token: %s", r.text)
