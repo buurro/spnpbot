@@ -5,10 +5,11 @@ class SpotifyTokenError(Exception):
 class SpotifyTokenExpiredError(SpotifyTokenError): ...
 
 
-class SpotifyTokenRevokedError(SpotifyTokenError): ...
+class SpotifyInvalidRefreshTokenError(SpotifyTokenError):
+    """Raised when a refresh token is rejected (expired, revoked, malformed).
 
-
-class SpotifyInvalidRefreshTokenError(SpotifyTokenError): ...
+    Spotify reports all of these as invalid_grant; the user must log in again.
+    """
 
 
 class SpotifyAuthError(Exception):

@@ -14,7 +14,6 @@ from app.spotify.errors import (
     SpotifyInvalidRefreshTokenError,
     SpotifyTokenError,
     SpotifyTokenExpiredError,
-    SpotifyTokenRevokedError,
 )
 from app.spotify.models import Context, Track
 from tests.mock_utils import (
@@ -594,15 +593,16 @@ async def test_refresh_token_success() -> None:
 @pytest.mark.asyncio
 @respx.mock
 async def test_refresh_token_error_response() -> None:
-    """Test handling of unrecognized 400 error response from refresh endpoint."""
+    """Test handling of a non-invalid_grant 400 error from the refresh endpoint."""
     respx.mock.post("https://accounts.spotify.com/api/token").mock(
-        return_value=Response(400, json={"error": "invalid_grant"})
+        return_value=Response(400, json={"error": "invalid_client"})
     )
 
     with pytest.raises(SpotifyTokenError) as exc_info:
         await refresh_token("invalid_refresh_token")
 
-    assert "invalid_grant" in str(exc_info.value)
+    assert type(exc_info.value) is SpotifyTokenError
+    assert "invalid_client" in str(exc_info.value)
 
 
 @pytest.mark.asyncio
@@ -622,22 +622,26 @@ async def test_refresh_token_invalid_json_response() -> None:
 @pytest.mark.asyncio
 @respx.mock
 @pytest.mark.parametrize(
-    ("error_description", "expected_exception"),
+    "error_description",
     [
-        ("Invalid refresh token", SpotifyInvalidRefreshTokenError),
-        ("refresh_token must be supplied", SpotifyInvalidRefreshTokenError),
-        ("Refresh token revoked", SpotifyTokenRevokedError),
+        "Invalid refresh token",
+        "refresh_token must be supplied",
+        "Refresh token revoked",
+        # Wording Spotify introduced without notice; must not slip through.
+        "Refresh token expired",
+        "some wording nobody has seen yet",
     ],
 )
-async def test_refresh_token_specific_errors(
-    error_description: str, expected_exception: type[Exception]
-) -> None:
-    """Test handling of specific refresh token errors."""
+async def test_refresh_token_invalid_grant(error_description: str) -> None:
+    """Every invalid_grant is reported as an invalid refresh token."""
     respx.mock.post("https://accounts.spotify.com/api/token").mock(
-        return_value=Response(400, json={"error_description": error_description})
+        return_value=Response(
+            400,
+            json={"error": "invalid_grant", "error_description": error_description},
+        )
     )
 
-    with pytest.raises(expected_exception):
+    with pytest.raises(SpotifyInvalidRefreshTokenError):
         await refresh_token("test_refresh_token")
 
 

@@ -471,25 +471,18 @@ async def test_inline_query_other_telegram_error(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "error_class",
-    ["SpotifyInvalidRefreshTokenError", "SpotifyTokenRevokedError"],
-)
 async def test_queue_callback_token_errors(
-    mock_callback_query: MockType, mocker: MockerFixture, error_class: str
+    mock_callback_query: MockType, mocker: MockerFixture
 ) -> None:
     """Test queue callback with token-related errors."""
     from unittest.mock import AsyncMock
 
-    from app.spotify import errors
+    from app.spotify.errors import SpotifyInvalidRefreshTokenError
 
     mock_callback_query.data = "queue;track123"
 
-    # Get the error class dynamically
-    error_exception = getattr(errors, error_class)()
-
     mock_client = mocker.Mock()
-    mock_client.add_to_queue = AsyncMock(side_effect=error_exception)
+    mock_client.add_to_queue = AsyncMock(side_effect=SpotifyInvalidRefreshTokenError())
     mocker.patch("app.user_service.get_user_spotify_client", return_value=mock_client)
 
     await bot.queue_callback(mock_callback_query)

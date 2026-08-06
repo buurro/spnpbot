@@ -21,11 +21,7 @@ from app.logger import get_logger
 from app.messages import get_help_message, get_queue_error_message
 from app.rate_limit import RateLimitMiddleware
 from app.spotify.auth import get_login_url
-from app.spotify.errors import (
-    SpotifyApiError,
-    SpotifyInvalidRefreshTokenError,
-    SpotifyTokenRevokedError,
-)
+from app.spotify.errors import SpotifyApiError, SpotifyInvalidRefreshTokenError
 from app.spotify.models import Contextable, Track
 from app.user_service import (
     UserNotLoggedInError,
@@ -150,11 +146,7 @@ async def inline_query(query: types.InlineQuery) -> None:
             track, context = await get_playback_data(user.id)
             # Cache the result
             _inline_query_cache[user.id] = (track, context)
-        except (
-            UserNotLoggedInError,
-            SpotifyInvalidRefreshTokenError,
-            SpotifyTokenRevokedError,
-        ):
+        except UserNotLoggedInError, SpotifyInvalidRefreshTokenError:
             logger.warning(
                 "User %d needs to login/re-authenticate with Spotify", user.id
             )
@@ -201,7 +193,7 @@ async def queue_callback(callback: types.CallbackQuery) -> None:
     except UserNotLoggedInError:
         await callback.answer("Please log in with Spotify first!", show_alert=True)
 
-    except SpotifyInvalidRefreshTokenError, SpotifyTokenRevokedError:
+    except SpotifyInvalidRefreshTokenError:
         logger.warning("User %d needs to re-authenticate with Spotify", user_id)
         await callback.answer(
             "Your Spotify session expired. Please log in again.", show_alert=True

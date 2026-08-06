@@ -152,16 +152,16 @@ async def test_refresh_user_spotify_token_revoked_token(
     from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.models import User
-    from app.spotify.errors import SpotifyTokenRevokedError
+    from app.spotify.errors import SpotifyInvalidRefreshTokenError
 
-    # Mock refresh_token to raise revoked token error
+    # Mock refresh_token to raise the error Spotify reports for a revoked token
     mocker.patch(
         "app.user_service.refresh_token",
-        side_effect=SpotifyTokenRevokedError(),
+        side_effect=SpotifyInvalidRefreshTokenError("Refresh token revoked"),
     )
 
     # Should raise the exception
-    with pytest.raises(SpotifyTokenRevokedError):
+    with pytest.raises(SpotifyInvalidRefreshTokenError):
         await refresh_user_spotify_token(telegram_user_id)
 
     # Verify tokens were cleared
