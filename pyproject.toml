@@ -61,6 +61,7 @@ addopts = [
 ]
 filterwarnings = [
     "ignore::ResourceWarning",
+    "ignore::pydantic.warnings.UnsupportedFieldAttributeWarning",
 ]
 
 [tool.coverage.run]
