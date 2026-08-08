@@ -1,8 +1,16 @@
 import time
+import warnings
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import sentry_sdk
+from pydantic.warnings import UnsupportedFieldAttributeWarning
+
+# FastAPI suppresses this warning when building route TypeAdapters, but aiogram's
+# defer_build=True postpones the schema build to the first webhook request, where
+# the suppression no longer applies. Remove once fixed upstream.
+warnings.filterwarnings("ignore", category=UnsupportedFieldAttributeWarning)
+
 from aiogram.types import BotCommand
 from fastapi import FastAPI
 
