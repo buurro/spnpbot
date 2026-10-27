@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 import httpx
+import sentry_sdk
 from cachetools import TTLCache
 from pydantic import BaseModel, ValidationError
 
@@ -88,7 +89,14 @@ class SpotifyClient(httpx.AsyncClient):
                 self._cache[cache_key] = result
             return result
         except ValidationError:
-            logger.exception("Failed to parse Spotify API response for %s", r.url)
+            # Attach the raw body so the failing payload is visible in Sentry
+            with sentry_sdk.new_scope() as scope:
+                scope.add_attachment(
+                    bytes=r.content,
+                    filename="response.json",
+                    content_type="application/json",
+                )
+                logger.exception("Failed to parse Spotify API response for %s", r.url)
             return None
 
     async def get_album(self, id: str) -> Album | None:
